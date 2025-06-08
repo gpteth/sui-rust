@@ -1,0 +1,28 @@
+[development]
+address = "127.0.0.1"
+port = "8100"
+workers = 5
+
+[development.database]
+adapter = "mysql"
+db_name = "blog_development"
+pool = 10
+
+[staging]
+address = "0.0.0.0"
+port = "9000"
+
+[staging.database]
+adapter = "postgresql"
+db_name = "blog_development"
+pool = 5
+
+
+[production]
+address = "0.0.0.0"
+port = "9000"
+
+[production.database]
+adapter = "postgresql"
+db_name = "blog_development"
+pool = 5
