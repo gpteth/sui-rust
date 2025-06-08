@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="理解 T vs &#38;T"><title>understand_lifetime_in_generic_type in inviting_rust::ch02::s2_lifetime - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">understand_<wbr>lifetime_<wbr>in_<wbr>generic_<wbr>type</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#理解-t-vs-t" title="理解 T vs &#38;T">理解 T vs &amp;T</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s2_<wbr>lifetime</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s2_lifetime</a></div><h1>Function <span class="fn">understand_lifetime_in_generic_type</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s2_lifetime.rs.html#376-378">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_lifetime_in_generic_type()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="理解-t-vs-t"><a class="doc-anchor" href="#理解-t-vs-t">§</a>理解 T vs &amp;T</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::fmt::Debug;
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>Ref&lt;<span class="lifetime">'a</span>, T: <span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>T);
+
+<span class="kw">fn </span>print&lt;T&gt;(t: T)
+<span class="kw">where
+    </span>T: Debug,
+{
+    <span class="macro">println!</span>(<span class="string">"`print`: t is {:?}"</span>, t);
+}
+
+<span class="kw">fn </span>print_ref&lt;<span class="lifetime">'a</span>, T&gt;(t: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>T)
+<span class="kw">where
+</span>T: Debug + <span class="lifetime">'a</span>,
+{
+<span class="macro">println!</span>(<span class="string">"`print_ref`: t is {:?}"</span>, t);
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>x = <span class="number">7</span>;
+    <span class="kw">let </span>ref_x = Ref(<span class="kw-2">&amp;</span>x);
+    print_ref(<span class="kw-2">&amp;</span>ref_x);
+    print(ref_x);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::fmt::Debug;%0A%0A%23%5Bderive(Debug)%5D%0Astruct+Ref%3C'a,+T:+'a%3E(%26'a+T);%0A%0Afn+print%3CT%3E(t:+T)%0Awhere%0A++++T:+Debug,%0A%7B%0A++++println!(%22%60print%60:+t+is+%7B:?%7D%22,+t);%0A%7D%0A%0Afn+print_ref%3C'a,+T%3E(t:+%26'a+T)%0Awhere%0AT:+Debug+%2B+'a,%0A%7B%0Aprintln!(%22%60print_ref%60:+t+is+%7B:?%7D%22,+t);%0A%7D%0A%0Afn+main()+%7B%0A++++let+x+=+7;%0A++++let+ref_x+=+Ref(%26x);%0A++++print_ref(%26ref_x);%0A++++print(ref_x);%0A%7D&amp;edition=2018"></a></div>
+<p>示例：Rust Quiz 5 ：<a href="https://zhuanlan.zhihu.com/p/51616607">https://zhuanlan.zhihu.com/p/51616607</a></p>
+<p>以下代码输出什么？</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">trait </span>Trait {
+    <span class="kw">fn </span>f(<span class="self">self</span>);
+}
+
+<span class="kw">impl</span>&lt;T&gt; Trait <span class="kw">for fn</span>(T) {
+    <span class="kw">fn </span>f(<span class="self">self</span>) {
+        <span class="macro">print!</span>(<span class="string">"1"</span>);
+    }
+}
+
+<span class="kw">impl</span>&lt;T&gt; Trait <span class="kw">for fn</span>(<span class="kw-2">&amp;</span>T) {
+    <span class="kw">fn </span>f(<span class="self">self</span>) {
+        <span class="macro">print!</span>(<span class="string">"2"</span>);
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>a: <span class="kw">fn</span>(<span class="kw">_</span>) = |<span class="kw">_</span>: u8| {};
+    <span class="kw">let </span>b: <span class="kw">fn</span>(<span class="kw">_</span>) = |<span class="kw">_</span>: <span class="kw-2">&amp;</span>u8| {};
+    <span class="kw">let </span>c: <span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="kw">_</span>) = |<span class="kw">_</span>: <span class="kw-2">&amp;</span>u8| {};
+    a.f();
+    b.f();
+    c.f();
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Atrait+Trait+%7B%0A++++fn+f(self);%0A%7D%0A%0Aimpl%3CT%3E+Trait+for+fn(T)+%7B%0A++++fn+f(self)+%7B%0A++++++++print!(%221%22);%0A++++%7D%0A%7D%0A%0Aimpl%3CT%3E+Trait+for+fn(%26T)+%7B%0A++++fn+f(self)+%7B%0A++++++++print!(%222%22);%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++let+a:+fn(_)+=+%7C_:+u8%7C+%7B%7D;%0A++++let+b:+fn(_)+=+%7C_:+%26u8%7C+%7B%7D;%0A++++let+c:+fn(%26_)+=+%7C_:+%26u8%7C+%7B%7D;%0A++++a.f();%0A++++b.f();%0A++++c.f();%0A%7D&amp;edition=2018"></a></div>
+<p>示例：来自于社区 Potato TooLarge 的案例</p>
+<p><a href="https://zhuanlan.zhihu.com/p/194156624">https://zhuanlan.zhihu.com/p/194156624</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="comment">// https://doc.rust-lang.org/std/collections/struct.HashSet.html
+
+</span><span class="kw">use </span>std::collections::HashSet;
+
+<span class="kw">fn </span>main() {
+
+    <span class="kw">let </span>hello = <span class="string">"hello"</span>.to_owned();
+    <span class="kw">let </span><span class="kw-2">mut </span>items = HashSet::new();
+
+    items.insert(hello.as_str());
+
+    <span class="kw">let </span><span class="kw-2">mut </span>global_set = HashSet::new();
+    global_set.insert(hello.as_str());
+
+    <span class="kw">while </span>!global_set.is_empty() {
+        <span class="kw">let </span><span class="kw-2">mut </span>temp_set = HashSet::new();
+
+        <span class="kw">for </span><span class="kw-2">&amp;</span>item <span class="kw">in </span>global_set.iter() {
+            <span class="kw">let </span>copy = item.to_owned();
+            <span class="kw">let </span>copy_str = copy.as_str();
+
+            <span class="comment">// copy_str &lt;==&gt; &amp;copy  ===&gt;  HashSet::get()
+            // &amp;copy_str &lt;==&gt; &amp;'x &amp;'a copy
+
+            </span><span class="kw">if let </span><span class="prelude-val">Some</span>(inner) = items.get(copy_str).cloned() {
+                temp_set.insert(inner);
+            };
+        };
+        std::mem::swap(<span class="kw-2">&amp;mut </span>global_set, <span class="kw-2">&amp;mut </span>temp_set);
+        <span class="kw">break</span>;
+    };
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A//+https://doc.rust-lang.org/std/collections/struct.HashSet.html%0A%0Ause+std::collections::HashSet;%0A%0Afn+main()+%7B%0A%0A++++let+hello+=+%22hello%22.to_owned();%0A++++let+mut+items+=+HashSet::new();%0A%0A++++items.insert(hello.as_str());%0A%0A++++let+mut+global_set+=+HashSet::new();%0A++++global_set.insert(hello.as_str());%0A%0A++++while+!global_set.is_empty()+%7B%0A++++++++let+mut+temp_set+=+HashSet::new();%0A%0A++++++++for+%26item+in+global_set.iter()+%7B%0A++++++++++++let+copy+=+item.to_owned();%0A++++++++++++let+copy_str+=+copy.as_str();%0A%0A++++++++++++//+copy_str+%3C==%3E+%26copy++===%3E++HashSet::get()%0A++++++++++++//+%26copy_str+%3C==%3E+%26'x+%26'a+copy%0A%0A++++++++++++if+let+Some(inner)+=+items.get(copy_str).cloned()+%7B%0A++++++++++++++++temp_set.insert(inner);%0A++++++++++++%7D;%0A++++++++%7D;%0A++++++++std::mem::swap(%26mut+global_set,+%26mut+temp_set);%0A++++++++break;%0A++++%7D;%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

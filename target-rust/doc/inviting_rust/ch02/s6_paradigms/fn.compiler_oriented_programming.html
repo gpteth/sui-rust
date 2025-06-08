@@ -1,0 +1,161 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Rust 是面向对象语言吗？"><title>compiler_oriented_programming in inviting_rust::ch02::s6_paradigms - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">compiler_<wbr>oriented_<wbr>programming</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#rust-是面向对象语言吗" title="Rust 是面向对象语言吗？">Rust 是面向对象语言吗？</a></li><li><a href="#rust-是函数式语言吗" title="Rust 是函数式语言吗？">Rust 是函数式语言吗？</a></li><li><a href="#rust-是-面向编译器-编程的语言" title="Rust 是 面向编译器 编程的语言">Rust 是 面向编译器 编程的语言</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s6_<wbr>paradigms</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s6_paradigms</a></div><h1>Function <span class="fn">compiler_oriented_programming</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s6_paradigms.rs.html#193-195">Source</a> </span></div><pre class="rust item-decl"><code>pub fn compiler_oriented_programming()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="rust-是面向对象语言吗"><a class="doc-anchor" href="#rust-是面向对象语言吗">§</a>Rust 是面向对象语言吗？</h4>
+<p>OOP style:</p>
+<ol>
+<li>支持面向接口编程</li>
+<li>支持封装</li>
+<li>不支持继承(但可以模拟)</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>interface Foo {}
+class Bar: Foo {
+    <span class="comment">//Implement Foo here
+</span>}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++interface+Foo+%7B%7D%0A++++class+Bar:+Foo+%7B%0A++++++++//Implement+Foo+here%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">trait </span>Foo {}
+<span class="kw">struct </span>Bar;
+<span class="kw">impl </span>Bar;
+<span class="kw">impl </span>Foo <span class="kw">for </span>Bar {}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++trait+Foo+%7B%7D%0A++++struct+Bar;%0A++++impl+Bar;%0A++++impl+Foo+for+Bar+%7B%7D%0A%7D&amp;edition=2018"></a></div>
+<h4 id="rust-是函数式语言吗"><a class="doc-anchor" href="#rust-是函数式语言吗">§</a>Rust 是函数式语言吗？</h4>
+<p>函数式style：</p>
+<ol>
+<li>默认不可变（但也支持可变）</li>
+<li>支持递归（但不支持尾递归优化）</li>
+<li>函数是一等公民，高阶函数支持（有限）</li>
+<li>和类型/ 积类型 (Option/Result)</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>get_sum(<span class="kw-2">mut </span>total: u32, <span class="kw-2">mut </span>i: u32) -&gt; u32 {
+    <span class="kw">if </span>i &gt; <span class="number">10000000 </span>{
+        <span class="kw">return </span>total;
+    }
+
+    total = total.wrapping_add(i);
+    i += <span class="number">1</span>;
+    get_sum(total, i)
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>total = <span class="number">0</span>;
+    <span class="kw">let </span>total = get_sum(total, <span class="number">1</span>);
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, total);
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+get_sum(mut+total:+u32,+mut+i:+u32)+-%3E+u32+%7B%0A++++if+i+%3E+10000000+%7B%0A++++++++return+total;%0A++++%7D%0A%0A++++total+=+total.wrapping_add(i);%0A++++i+%2B=+1;%0A++++get_sum(total,+i)%0A%7D%0Afn+main()+%7B%0A++++let+total+=+0;%0A++++let+total+=+get_sum(total,+1);%0A++++println!(%22%7B%7D%22,+total);%0A%7D&amp;edition=2018"></a></div>
+<p>curring:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>States&lt;<span class="lifetime">'a</span>&gt; {
+    a: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>i32,
+    b: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>i32,
+}
+
+<span class="kw">trait </span>Currying {
+    <span class="kw">type </span>ReturnType: Fn(i32) -&gt; i32;
+    <span class="kw">fn </span>add(<span class="self">self</span>) -&gt; <span class="self">Self</span>::ReturnType;
+}
+
+<span class="kw">impl </span>Currying <span class="kw">for </span>States&lt;<span class="lifetime">'static</span>&gt;{
+    <span class="kw">type </span>ReturnType = Box&lt;<span class="kw">dyn </span>Fn(i32) -&gt; i32&gt;;
+
+    <span class="kw">fn </span>add(<span class="self">self</span>) -&gt; <span class="self">Self</span>::ReturnType {
+        Box::new(<span class="kw">move</span>|x| {
+            x * <span class="self">self</span>.a
+        })
+    }
+}
+
+<span class="kw">let </span>r_value: States = States {
+    a: <span class="kw-2">&amp;</span><span class="number">100</span>,
+    b: <span class="kw-2">&amp;</span><span class="number">100
+</span>};
+
+<span class="kw">let </span>r1 = r_value.add();
+<span class="kw">let </span>r2 = r1(<span class="number">5</span>);
+
+<span class="macro">assert_eq!</span>(<span class="number">500</span>, r2);</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++%23%5Bderive(Debug)%5D%0A++++struct+States%3C'a%3E+%7B%0A++++++++a:+%26'a+i32,%0A++++++++b:+%26'a+i32,%0A++++%7D%0A++++%0A++++trait+Currying+%7B%0A++++++++type+ReturnType:+Fn(i32)+-%3E+i32;%0A++++++++fn+add(self)+-%3E+Self::ReturnType;%0A++++%7D%0A++++%0A++++impl+Currying+for+States%3C'static%3E%7B%0A++++++++type+ReturnType+=+Box%3Cdyn+Fn(i32)+-%3E+i32%3E;%0A++++%0A++++++++fn+add(self)+-%3E+Self::ReturnType+%7B%0A++++++++++++Box::new(move%7Cx%7C+%7B%0A++++++++++++++++x+*+self.a%0A++++++++++++%7D)%0A++++++++%7D%0A++++%7D%0A++++%0A++++let+r_value:+States+=+States+%7B%0A++++++++a:+%26100,%0A++++++++b:+%26100%0A++++%7D;%0A++++%0A++++let+r1+=+r_value.add();%0A++++let+r2+=+r1(5);%0A++++%0A++++assert_eq!(500,+r2);%0A%7D&amp;edition=2018"></a></div>
+<h4 id="rust-是-面向编译器-编程的语言"><a class="doc-anchor" href="#rust-是-面向编译器-编程的语言">§</a>Rust 是 面向编译器 编程的语言</h4><div class="example-wrap"><pre class="language-text"><code>+----------------------------------------------------+
+|                crate                               |
+|                                                    |
+|      +-----------------------------------+         |
+|      |           std                     |         |
+|      |                                   |         |
+|      |       +---------------------+     |         |
+|      |       |                     |     |         |
+|      |       |     core            |     |         |
+|      |       |    +----------+     |     |         |
+|      |       |    | compiler |     |     |         |
+|      |       |    +----------+     |     |         |
+|      |       |                     |     |         |
+|      |       +---------------------+     |         |
+|      |                                   |         |
+|      |                                   |         |
+|      +-----------------------------------+         |
+|                                                    |
+|                                                    |
++----------------------------------------------------+
+</code></pre></div>
+<p>查看 Rust 源码组织结构： <a href="https://github.com/rust-lang/rust">https://github.com/rust-lang/rust</a></p>
+<p>洋葱模型：</p>
+<ol>
+<li>最小内核所谓所有权和借用规则，就是编译器特性</li>
+<li>基于最小内核开始构造了 core</li>
+<li>基于core 构造了 std</li>
+<li>基于 std 构造生态 crate</li>
+<li>命令式编程为主（类 C），OOP 和 FP Style 辅助</li>
+</ol>
+<p>典型的实现：<a href="https://github.com/rust-lang/rust/blob/master/library/core/src/cell.rs">std::cell::Cell</a></p>
+<p>Cell 的语义：</p>
+<ol>
+<li>在不可变引用的基础上构造一个安全的内部可变性</li>
+<li>只针对实现 Copy 的类型提供 get 方法</li>
+<li>对于 非 Copy 的类型，提供 move out 的方法</li>
+</ol>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#[stable(feature = <span class="string">"rust1"</span>, since = <span class="string">"1.0.0"</span>)]
+#[repr(transparent)]
+</span><span class="kw">pub struct </span>Cell&lt;T: <span class="question-mark">?</span>Sized&gt; {
+    value: UnsafeCell&lt;T&gt;,
+}
+
+<span class="attr">#[stable(feature = <span class="string">"rust1"</span>, since = <span class="string">"1.0.0"</span>)]
+</span><span class="kw">unsafe impl</span>&lt;T: <span class="question-mark">?</span>Sized&gt; Send <span class="kw">for </span>Cell&lt;T&gt; <span class="kw">where </span>T: Send {}
+
+<span class="attr">#[stable(feature = <span class="string">"rust1"</span>, since = <span class="string">"1.0.0"</span>)]
+</span><span class="kw">impl</span>&lt;T: <span class="question-mark">?</span>Sized&gt; !Sync <span class="kw">for </span>Cell&lt;T&gt; {}
+
+<span class="attr">#[stable(feature = <span class="string">"rust1"</span>, since = <span class="string">"1.0.0"</span>)]
+</span><span class="kw">impl</span>&lt;T: Copy&gt; Clone <span class="kw">for </span>Cell&lt;T&gt; {
+    <span class="attr">#[inline]
+    </span><span class="kw">fn </span>clone(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Cell&lt;T&gt; {
+        Cell::new(<span class="self">self</span>.get())
+    }
+}
+
+<span class="kw">impl</span>&lt;T: Eq + Copy&gt; Eq <span class="kw">for </span>Cell&lt;T&gt; {}
+
+<span class="kw">impl</span>&lt;T&gt; Cell&lt;T&gt; {
+
+    <span class="kw">pub const fn </span>new(value: T) -&gt; Cell&lt;T&gt; {
+        Cell { value: UnsafeCell::new(value) }
+    }
+
+    <span class="kw">pub fn </span>set(<span class="kw-2">&amp;</span><span class="self">self</span>, val: T) {
+        <span class="kw">let </span>old = <span class="self">self</span>.replace(val);
+        drop(old);
+    }
+}
+
+<span class="kw">impl</span>&lt;T: Copy&gt; Cell&lt;T&gt; {
+    <span class="kw">pub fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; T {
+        <span class="comment">// SAFETY: This can cause data races if called from a separate thread,
+        // but `Cell` is `!Sync` so this won't happen.
+        </span><span class="kw">unsafe </span>{ <span class="kw-2">*</span><span class="self">self</span>.value.get() }
+    }
+}
+
+<span class="kw">impl</span>&lt;T: Default&gt; Cell&lt;T&gt; {
+    <span class="attr">#[stable(feature = <span class="string">"move_cell"</span>, since = <span class="string">"1.17.0"</span>)]
+    </span><span class="kw">pub fn </span>take(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; T {
+        <span class="self">self</span>.replace(Default::default())
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0Afn+main()+%7B%0A++++%23%5Bstable(feature+=+%22rust1%22,+since+=+%221.0.0%22)%5D%0A++++%23%5Brepr(transparent)%5D%0A++++pub+struct+Cell%3CT:+?Sized%3E+%7B%0A++++++++value:+UnsafeCell%3CT%3E,%0A++++%7D%0A++++%0A++++%23%5Bstable(feature+=+%22rust1%22,+since+=+%221.0.0%22)%5D%0A++++unsafe+impl%3CT:+?Sized%3E+Send+for+Cell%3CT%3E+where+T:+Send+%7B%7D%0A++++%0A++++%23%5Bstable(feature+=+%22rust1%22,+since+=+%221.0.0%22)%5D%0A++++impl%3CT:+?Sized%3E+!Sync+for+Cell%3CT%3E+%7B%7D%0A++++%0A++++%23%5Bstable(feature+=+%22rust1%22,+since+=+%221.0.0%22)%5D%0A++++impl%3CT:+Copy%3E+Clone+for+Cell%3CT%3E+%7B%0A++++++++%23%5Binline%5D%0A++++++++fn+clone(%26self)+-%3E+Cell%3CT%3E+%7B%0A++++++++++++Cell::new(self.get())%0A++++++++%7D%0A++++%7D%0A++++%0A++++impl%3CT:+Eq+%2B+Copy%3E+Eq+for+Cell%3CT%3E+%7B%7D%0A++++%0A++++impl%3CT%3E+Cell%3CT%3E+%7B%0A++++%0A++++++++pub+const+fn+new(value:+T)+-%3E+Cell%3CT%3E+%7B%0A++++++++++++Cell+%7B+value:+UnsafeCell::new(value)+%7D%0A++++++++%7D%0A++++%0A++++++++pub+fn+set(%26self,+val:+T)+%7B%0A++++++++++++let+old+=+self.replace(val);%0A++++++++++++drop(old);%0A++++++++%7D%0A++++%7D%0A++++%0A++++impl%3CT:+Copy%3E+Cell%3CT%3E+%7B%0A++++++++pub+fn+get(%26self)+-%3E+T+%7B%0A++++++++++++//+SAFETY:+This+can+cause+data+races+if+called+from+a+separate+thread,%0A++++++++++++//+but+%60Cell%60+is+%60!Sync%60+so+this+won't+happen.%0A++++++++++++unsafe+%7B+*self.value.get()+%7D%0A++++++++%7D%0A++++%7D%0A++++%0A++++impl%3CT:+Default%3E+Cell%3CT%3E+%7B%0A++++++++%23%5Bstable(feature+=+%22move_cell%22,+since+=+%221.17.0%22)%5D%0A++++++++pub+fn+take(%26self)+-%3E+T+%7B%0A++++++++++++self.replace(Default::default())%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

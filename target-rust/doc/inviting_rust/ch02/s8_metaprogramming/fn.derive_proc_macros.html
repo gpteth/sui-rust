@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="介绍：serde.rs"><title>derive_proc_macros in inviting_rust::ch02::s8_metaprogramming - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s8_<wbr>metaprogramming</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s8_metaprogramming</a></div><h1>Function <span class="fn">derive_proc_macros</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s8_metaprogramming.rs.html#419">Source</a> </span></div><pre class="rust item-decl"><code>pub fn derive_proc_macros()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>介绍：<a href="https://serde.rs/">serde.rs</a></p>
+<p>参阅 :  <a href="https://github.com/ZhangHanDong/proc_codegen">https://github.com/ZhangHanDong/proc_codegen</a></p>
+<p>过程宏三件套：</p>
+<ul>
+<li><a href="https://github.com/dtolnay/syn">syn</a></li>
+<li><a href="https://github.com/dtolnay/quote">quote</a></li>
+<li><a href="https://github.com/alexcrichton/proc-macro2">proc-macro2</a></li>
+</ul>
+<p>示例：封装 Diesel 方便 crud</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+    <span class="comment">// find_by_or!{ Person -&gt; people::[name:String || company_name:String]   }
+
+    </span><span class="kw">use super</span>::<span class="kw-2">*</span>;
+
+    <span class="kw">pub struct </span>DbOpByOrBy {
+        <span class="kw">pub </span>model: Type,
+        <span class="kw">pub </span>table: Ident,
+        <span class="kw">pub </span>bracket_token: token::Bracket,
+        <span class="kw">pub </span>content: FieldContentOr,
+    }
+
+    <span class="kw">pub struct </span>FieldContentOr {
+        <span class="kw">pub </span>name1: Ident,
+        <span class="kw">pub </span>ty1: Type,
+        <span class="kw">pub </span>name2: Ident,
+        <span class="kw">pub </span>ty2: Type,
+    }
+
+    <span class="kw">impl </span>Parse <span class="kw">for </span>DbOpByOrBy {
+        <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+            <span class="kw">let </span>content;
+            <span class="kw">let </span>model: Type = input.parse()<span class="question-mark">?</span>;
+            input.parse::&lt;<span class="macro">Token!</span>[-&gt;]&gt;()<span class="question-mark">?</span>;
+            <span class="kw">let </span>table: Ident = input.parse()<span class="question-mark">?</span>;
+            input.parse::&lt;<span class="macro">Token!</span>[::]&gt;()<span class="question-mark">?</span>;
+            <span class="kw">let </span>bracket_token = <span class="macro">bracketed!</span>(content <span class="kw">in </span>input);
+            <span class="kw">let </span>content = content.parse()<span class="question-mark">?</span>;
+            <span class="prelude-val">Ok</span>(DbOpByOrBy {
+                model,
+                table,
+                bracket_token,
+                content,
+            })
+        }
+    }
+
+    <span class="kw">impl </span>Parse <span class="kw">for </span>FieldContentOr {
+        <span class="kw">fn </span>parse(input: ParseStream) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+            <span class="kw">let </span>name1: Ident = input.parse()<span class="question-mark">?</span>;
+            input.parse::&lt;<span class="macro">Token!</span>[:]&gt;()<span class="question-mark">?</span>;
+            <span class="kw">let </span>ty1: Type = input.parse()<span class="question-mark">?</span>;
+            input.parse::&lt;<span class="macro">Token!</span>[||]&gt;()<span class="question-mark">?</span>;
+            <span class="kw">let </span>name2: Ident = input.parse()<span class="question-mark">?</span>;
+            input.parse::&lt;<span class="macro">Token!</span>[:]&gt;()<span class="question-mark">?</span>;
+            <span class="kw">let </span>ty2: Type = input.parse()<span class="question-mark">?</span>;
+            <span class="prelude-val">Ok</span>(FieldContentOr {
+                name1,
+                ty1,
+                name2,
+                ty2,
+            })
+        }
+    }
+
+    <span class="comment">// in lib.rs
+
+    // find_by_or!{ Person -&gt; people::[name:String || company_name:String]   }
+
+    </span><span class="attr">#[proc_macro]
+    </span><span class="kw">pub fn </span>find_by_or(input: TokenStream) -&gt; TokenStream {
+        <span class="kw">let </span>DbOpByOrBy {
+            model,
+            table,
+            bracket_token,
+            content,
+        } = <span class="macro">parse_macro_input!</span>(input <span class="kw">as </span>DbOpByOrBy);
+        <span class="kw">let </span>(name1, name2) = (content.name1, content.name2);
+        <span class="kw">let </span>(ty1, ty2) = (content.ty1, content.ty2);
+        <span class="kw">let </span>fn_name = <span class="macro">format!</span>(<span class="string">"find_by_{}_or_{}"</span>, name1, name2);
+        <span class="kw">let </span>fn_name = Ident::new(<span class="kw-2">&amp;</span>fn_name, proc_macro2::Span::call_site());
+
+        <span class="kw">let </span>expanded = <span class="macro">quote!</span> {
+            <span class="kw">impl </span>#model {
+                <span class="kw">pub fn </span>#fn_name(conn: <span class="kw-2">&amp;</span>PgConnection, #name1: #ty1, #name2: #ty2) -&gt; QueryResult&lt;#model&gt; {
+                    #table::table
+                    .filter(#table::dsl::#name1.eq(#name1))
+                    .or_filter(#table::dsl::#name2.eq(#name2))
+                    .get_result(conn)
+                }
+            }
+        };
+        TokenStream::from(expanded)
+    }
+
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A++++//+find_by_or!%7B+Person+-%3E+people::%5Bname:String+%7C%7C+company_name:String%5D+++%7D%0A%0Afn+main()+%7B%0A++++use+super::*;%0A++++%0A++++++++pub+struct+DbOpByOrBy+%7B%0A++++++++++++pub+model:+Type,%0A++++++++++++pub+table:+Ident,%0A++++++++++++pub+bracket_token:+token::Bracket,%0A++++++++++++pub+content:+FieldContentOr,%0A++++++++%7D%0A++++%0A++++++++pub+struct+FieldContentOr+%7B%0A++++++++++++pub+name1:+Ident,%0A++++++++++++pub+ty1:+Type,%0A++++++++++++pub+name2:+Ident,%0A++++++++++++pub+ty2:+Type,%0A++++++++%7D%0A++++%0A++++++++impl+Parse+for+DbOpByOrBy+%7B%0A++++++++++++fn+parse(input:+ParseStream)+-%3E+Result%3CSelf%3E+%7B%0A++++++++++++++++let+content;%0A++++++++++++++++let+model:+Type+=+input.parse()?;%0A++++++++++++++++input.parse::%3CToken!%5B-%3E%5D%3E()?;%0A++++++++++++++++let+table:+Ident+=+input.parse()?;%0A++++++++++++++++input.parse::%3CToken!%5B::%5D%3E()?;%0A++++++++++++++++let+bracket_token+=+bracketed!(content+in+input);%0A++++++++++++++++let+content+=+content.parse()?;%0A++++++++++++++++Ok(DbOpByOrBy+%7B%0A++++++++++++++++++++model,%0A++++++++++++++++++++table,%0A++++++++++++++++++++bracket_token,%0A++++++++++++++++++++content,%0A++++++++++++++++%7D)%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++impl+Parse+for+FieldContentOr+%7B%0A++++++++++++fn+parse(input:+ParseStream)+-%3E+Result%3CSelf%3E+%7B%0A++++++++++++++++let+name1:+Ident+=+input.parse()?;%0A++++++++++++++++input.parse::%3CToken!%5B:%5D%3E()?;%0A++++++++++++++++let+ty1:+Type+=+input.parse()?;%0A++++++++++++++++input.parse::%3CToken!%5B%7C%7C%5D%3E()?;%0A++++++++++++++++let+name2:+Ident+=+input.parse()?;%0A++++++++++++++++input.parse::%3CToken!%5B:%5D%3E()?;%0A++++++++++++++++let+ty2:+Type+=+input.parse()?;%0A++++++++++++++++Ok(FieldContentOr+%7B%0A++++++++++++++++++++name1,%0A++++++++++++++++++++ty1,%0A++++++++++++++++++++name2,%0A++++++++++++++++++++ty2,%0A++++++++++++++++%7D)%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++//+in+lib.rs%0A++++%0A++++++++//+find_by_or!%7B+Person+-%3E+people::%5Bname:String+%7C%7C+company_name:String%5D+++%7D%0A++++%0A++++++++%23%5Bproc_macro%5D%0A++++++++pub+fn+find_by_or(input:+TokenStream)+-%3E+TokenStream+%7B%0A++++++++++++let+DbOpByOrBy+%7B%0A++++++++++++++++model,%0A++++++++++++++++table,%0A++++++++++++++++bracket_token,%0A++++++++++++++++content,%0A++++++++++++%7D+=+parse_macro_input!(input+as+DbOpByOrBy);%0A++++++++++++let+(name1,+name2)+=+(content.name1,+content.name2);%0A++++++++++++let+(ty1,+ty2)+=+(content.ty1,+content.ty2);%0A++++++++++++let+fn_name+=+format!(%22find_by_%7B%7D_or_%7B%7D%22,+name1,+name2);%0A++++++++++++let+fn_name+=+Ident::new(%26fn_name,+proc_macro2::Span::call_site());%0A++++%0A++++++++++++let+expanded+=+quote!+%7B%0A++++++++++++++++impl+%23model+%7B%0A++++++++++++++++++++pub+fn+%23fn_name(conn:+%26PgConnection,+%23name1:+%23ty1,+%23name2:+%23ty2)+-%3E+QueryResult%3C%23model%3E+%7B%0A++++++++++++++++++++++++%23table::table%0A++++++++++++++++++++++++.filter(%23table::dsl::%23name1.eq(%23name1))%0A++++++++++++++++++++++++.or_filter(%23table::dsl::%23name2.eq(%23name2))%0A++++++++++++++++++++++++.get_result(conn)%0A++++++++++++++++++++%7D%0A++++++++++++++++%7D%0A++++++++++++%7D;%0A++++++++++++TokenStream::from(expanded)%0A++++++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>有用的第三方库：</p>
+<ul>
+<li><a href="https://github.com/JelteF/derive_more">derive_more</a></li>
+</ul>
+</div></details></section></div></main></body></html>

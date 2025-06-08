@@ -1,0 +1,165 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="声明宏"><title>declarative_macros in inviting_rust::ch02::s8_metaprogramming - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">declarative_<wbr>macros</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#声明宏" title="声明宏">声明宏</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s8_<wbr>metaprogramming</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s8_metaprogramming</a></div><h1>Function <span class="fn">declarative_macros</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s8_metaprogramming.rs.html#309">Source</a> </span></div><pre class="rust item-decl"><code>pub fn declarative_macros()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="声明宏"><a class="doc-anchor" href="#声明宏">§</a>声明宏</h2>
+<p>宏展开命令： cargo rustc – -Z unstable-options –pretty=expanded</p>
+<p>示例1:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>  <span class="macro">macro_rules!</span> unless {
+      (<span class="macro-nonterminal">$arg</span>:expr, <span class="macro-nonterminal">$branch</span>:expr) =&gt; ( <span class="kw">if </span>!<span class="macro-nonterminal">$arg </span>{ <span class="macro-nonterminal">$branch </span>};);
+  }
+  <span class="kw">fn </span>cmp(a: i32, b: i32) {
+      <span class="macro">unless!</span>( a &gt; b, {
+          <span class="macro">println!</span>(<span class="string">"{} &lt; {}"</span>, a, b);
+      });
+  }
+  <span class="kw">fn </span>main() {
+      <span class="kw">let </span>(a, b) = (<span class="number">1</span>, <span class="number">2</span>);
+      cmp(a, b);
+  }</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Amacro_rules!+unless+%7B%0A++++++(%24arg:expr,+%24branch:expr)+=%3E+(+if+!%24arg+%7B+%24branch+%7D;);%0A++%7D%0A++fn+cmp(a:+i32,+b:+i32)+%7B%0A++++++unless!(+a+%3E+b,+%7B%0A++++++++++println!(%22%7B%7D+%3C+%7B%7D%22,+a,+b);%0A++++++%7D);%0A++%7D%0A++fn+main()+%7B%0A++++++let+(a,+b)+=+(1,+2);%0A++++++cmp(a,+b);%0A++%7D&amp;edition=2018"></a></div>
+<p>支持 token 类型：</p>
+<div class="example-wrap"><pre class="language-text"><code>      item — an item, like a function, struct, module, etc.
+      block — a block (i.e. a block of statements and/or an expression, surrounded by braces)
+      stmt — a statement
+      pat — a pattern
+      expr — an expression
+      ty — a type
+      ident — an identifier
+      path — a path (e.g., foo, ::std::mem::replace, transmute::&lt;_, int&gt;, …)
+      meta — a meta item; the things that go inside #[...] and #![...] attributes
+      tt — a single token tree
+      vis — a possibly empty Visibility qualifier</code></pre></div>
+<p>示例2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+  <span class="macro">macro_rules!</span> hashmap {
+      ($(<span class="macro-nonterminal">$key</span>:expr =&gt; <span class="macro-nonterminal">$value</span>:expr),* ) =&gt; {
+          {
+              <span class="kw">let </span><span class="kw-2">mut </span>_map = ::std::collections::HashMap::new();
+              $(
+                  _map.insert(<span class="macro-nonterminal">$key</span>, <span class="macro-nonterminal">$value</span>);
+              )*
+              _map
+          }
+      };
+  }
+  <span class="kw">fn </span>main(){
+      <span class="kw">let </span>map = <span class="macro">hashmap!</span>{
+          <span class="string">"a" </span>=&gt; <span class="number">1</span>,
+          <span class="string">"b" </span>=&gt; <span class="number">2
+      </span><span class="comment">//  "c" =&gt; 3, // V1.0不支持结尾有逗号
+      </span>};
+      <span class="macro">assert_eq!</span>(map[<span class="string">"a"</span>], <span class="number">1</span>);
+  }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0Amacro_rules!+hashmap+%7B%0A++++++(%24(%24key:expr+=%3E+%24value:expr),*+)+=%3E+%7B%0A++++++++++%7B%0A++++++++++++++let+mut+_map+=+::std::collections::HashMap::new();%0A++++++++++++++%24(%0A++++++++++++++++++_map.insert(%24key,+%24value);%0A++++++++++++++)*%0A++++++++++++++_map%0A++++++++++%7D%0A++++++%7D;%0A++%7D%0A++fn+main()%7B%0A++++++let+map+=+hashmap!%7B%0A++++++++++%22a%22+=%3E+1,%0A++++++++++%22b%22+=%3E+2%0A++++++//++%22c%22+=%3E+3,+//+V1.0%E4%B8%8D%E6%94%AF%E6%8C%81%E7%BB%93%E5%B0%BE%E6%9C%89%E9%80%97%E5%8F%B7%0A++++++%7D;%0A++++++assert_eq!(map%5B%22a%22%5D,+1);%0A++%7D&amp;edition=2018"></a></div>
+<p>示例3:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>  <span class="macro">macro_rules!</span> hashmap {
+      ($(<span class="macro-nonterminal">$key</span>:expr =&gt; <span class="macro-nonterminal">$value</span>:expr,)<span class="kw-2">*</span>) =&gt;
+          {  <span class="macro">hashmap!</span>($(<span class="macro-nonterminal">$key </span>=&gt; <span class="macro-nonterminal">$value</span>),<span class="kw-2">*</span>) };
+      ($(<span class="macro-nonterminal">$key</span>:expr =&gt; <span class="macro-nonterminal">$value</span>:expr),* ) =&gt; {
+          {
+              <span class="kw">let </span><span class="kw-2">mut </span>_map = ::std::collections::HashMap::new();
+              $(
+                  _map.insert(<span class="macro-nonterminal">$key</span>, <span class="macro-nonterminal">$value</span>);
+              )*
+          _map
+      }
+  };
+  }
+  <span class="kw">fn </span>main(){
+      <span class="kw">let </span>map = <span class="macro">hashmap!</span>{
+          <span class="string">"a" </span>=&gt; <span class="number">1</span>,
+          <span class="string">"b" </span>=&gt; <span class="number">2</span>,
+          <span class="string">"c" </span>=&gt; <span class="number">3</span>,
+      };
+      <span class="macro">assert_eq!</span>(map[<span class="string">"a"</span>], <span class="number">1</span>);
+  }</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Amacro_rules!+hashmap+%7B%0A++++++(%24(%24key:expr+=%3E+%24value:expr,)*)+=%3E%0A++++++++++%7B++hashmap!(%24(%24key+=%3E+%24value),*)+%7D;%0A++++++(%24(%24key:expr+=%3E+%24value:expr),*+)+=%3E+%7B%0A++++++++++%7B%0A++++++++++++++let+mut+_map+=+::std::collections::HashMap::new();%0A++++++++++++++%24(%0A++++++++++++++++++_map.insert(%24key,+%24value);%0A++++++++++++++)*%0A++++++++++_map%0A++++++%7D%0A++%7D;%0A++%7D%0A++fn+main()%7B%0A++++++let+map+=+hashmap!%7B%0A++++++++++%22a%22+=%3E+1,%0A++++++++++%22b%22+=%3E+2,%0A++++++++++%22c%22+=%3E+3,%0A++++++%7D;%0A++++++assert_eq!(map%5B%22a%22%5D,+1);%0A++%7D&amp;edition=2018"></a></div>
+<p>示例4:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>  <span class="macro">macro_rules!</span> hashmap {
+      ($(<span class="macro-nonterminal">$key</span>:expr =&gt; <span class="macro-nonterminal">$value</span>:expr),* $(,)<span class="kw-2">*</span>) =&gt; {
+          {
+              <span class="kw">let </span><span class="kw-2">mut </span>_map = ::std::collections::HashMap::new();
+              $(
+                  _map.insert(<span class="macro-nonterminal">$key</span>, <span class="macro-nonterminal">$value</span>);
+              )*
+              _map
+          }
+  };
+  }
+  <span class="kw">fn </span>main(){
+      <span class="kw">let </span>map = <span class="macro">hashmap!</span>{
+          <span class="string">"a" </span>=&gt; <span class="number">1</span>,
+          <span class="string">"b" </span>=&gt; <span class="number">2</span>,
+          <span class="string">"c" </span>=&gt; <span class="number">3</span>,
+      };
+      <span class="macro">assert_eq!</span>(map[<span class="string">"a"</span>], <span class="number">1</span>);
+  }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Amacro_rules!+hashmap+%7B%0A++++++(%24(%24key:expr+=%3E+%24value:expr),*+%24(,)*)+=%3E+%7B%0A++++++++++%7B%0A++++++++++++++let+mut+_map+=+::std::collections::HashMap::new();%0A++++++++++++++%24(%0A++++++++++++++++++_map.insert(%24key,+%24value);%0A++++++++++++++)*%0A++++++++++++++_map%0A++++++++++%7D%0A++%7D;%0A++%7D%0A++fn+main()%7B%0A++++++let+map+=+hashmap!%7B%0A++++++++++%22a%22+=%3E+1,%0A++++++++++%22b%22+=%3E+2,%0A++++++++++%22c%22+=%3E+3,%0A++++++%7D;%0A++++++assert_eq!(map%5B%22a%22%5D,+1);%0A++%7D&amp;edition=2018"></a></div>
+<p>示例5:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>  <span class="macro">macro_rules!</span> unit {
+      ($(<span class="macro-nonterminal">$x</span>:tt)<span class="kw-2">*</span>) =&gt; (());
+  }
+  <span class="macro">macro_rules!</span> count {
+      ($(<span class="macro-nonterminal">$key</span>:expr),<span class="kw-2">*</span>) =&gt; (&lt;[()]&gt;::len(<span class="kw-2">&amp;</span>[$(<span class="macro">unit!</span>(<span class="macro-nonterminal">$key</span>)),<span class="kw-2">*</span>]));
+  }
+  <span class="macro">macro_rules!</span> hashmap {
+      ($(<span class="macro-nonterminal">$key</span>:expr =&gt; <span class="macro-nonterminal">$value</span>:expr),* $(,)<span class="kw-2">*</span>) =&gt; {
+          {
+          <span class="kw">let </span>_cap = <span class="macro">count!</span>($(<span class="macro-nonterminal">$key</span>),<span class="kw-2">*</span>);
+          <span class="kw">let </span><span class="kw-2">mut </span>_map
+              = ::std::collections::HashMap::with_capacity(_cap);
+          $(
+              _map.insert(<span class="macro-nonterminal">$key</span>, <span class="macro-nonterminal">$value</span>);
+          )*
+          _map
+      }
+  };
+  }
+  <span class="kw">fn </span>main(){
+      <span class="kw">let </span>map = <span class="macro">hashmap!</span>{
+          <span class="string">"a" </span>=&gt; <span class="number">1</span>,
+          <span class="string">"b" </span>=&gt; <span class="number">2</span>,
+          <span class="string">"c" </span>=&gt; <span class="number">3</span>,
+      };
+      <span class="macro">assert_eq!</span>(map[<span class="string">"a"</span>], <span class="number">1</span>);
+  }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Amacro_rules!+unit+%7B%0A++++++(%24(%24x:tt)*)+=%3E+(());%0A++%7D%0A++macro_rules!+count+%7B%0A++++++(%24(%24key:expr),*)+=%3E+(%3C%5B()%5D%3E::len(%26%5B%24(unit!(%24key)),*%5D));%0A++%7D%0A++macro_rules!+hashmap+%7B%0A++++++(%24(%24key:expr+=%3E+%24value:expr),*+%24(,)*)+=%3E+%7B%0A++++++++++%7B%0A++++++++++let+_cap+=+count!(%24(%24key),*);%0A++++++++++let+mut+_map%0A++++++++++++++=+::std::collections::HashMap::with_capacity(_cap);%0A++++++++++%24(%0A++++++++++++++_map.insert(%24key,+%24value);%0A++++++++++)*%0A++++++++++_map%0A++++++%7D%0A++%7D;%0A++%7D%0A++fn+main()%7B%0A++++++let+map+=+hashmap!%7B%0A++++++++++%22a%22+=%3E+1,%0A++++++++++%22b%22+=%3E+2,%0A++++++++++%22c%22+=%3E+3,%0A++++++%7D;%0A++++++assert_eq!(map%5B%22a%22%5D,+1);%0A++%7D&amp;edition=2018"></a></div>
+<p>示例6:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>  <span class="macro">macro_rules!</span> hashmap {
+      (@unit $(<span class="macro-nonterminal">$x</span>:tt)<span class="kw-2">*</span>) =&gt; (());
+      (@count $(<span class="macro-nonterminal">$rest</span>:expr),<span class="kw-2">*</span>) =&gt;
+          (&lt;[()]&gt;::len(<span class="kw-2">&amp;</span>[$(<span class="macro">hashmap!</span>(@unit <span class="macro-nonterminal">$rest</span>)),<span class="kw-2">*</span>]));
+      ($(<span class="macro-nonterminal">$key</span>:expr =&gt; <span class="macro-nonterminal">$value</span>:expr),* $(,)<span class="kw-2">*</span>) =&gt; {
+          {
+              <span class="kw">let </span>_cap = <span class="macro">hashmap!</span>(@count $(<span class="macro-nonterminal">$key</span>),<span class="kw-2">*</span>);
+              <span class="kw">let </span><span class="kw-2">mut </span>_map =
+                  ::std::collections::HashMap::with_capacity(_cap);
+          $(
+              _map.insert(<span class="macro-nonterminal">$key</span>, <span class="macro-nonterminal">$value</span>);
+          )*
+          _map
+      }
+  };
+  }
+  <span class="kw">fn </span>main(){
+  <span class="kw">let </span>map = <span class="macro">hashmap!</span>{
+      <span class="string">"a" </span>=&gt; <span class="number">1</span>,
+      <span class="string">"b" </span>=&gt; <span class="number">2</span>,
+      <span class="string">"c" </span>=&gt; <span class="number">3</span>,
+  };
+  <span class="macro">assert_eq!</span>(map[<span class="string">"a"</span>], <span class="number">1</span>);
+  }</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Amacro_rules!+hashmap+%7B%0A++++++(%40unit+%24(%24x:tt)*)+=%3E+(());%0A++++++(%40count+%24(%24rest:expr),*)+=%3E%0A++++++++++(%3C%5B()%5D%3E::len(%26%5B%24(hashmap!(%40unit+%24rest)),*%5D));%0A++++++(%24(%24key:expr+=%3E+%24value:expr),*+%24(,)*)+=%3E+%7B%0A++++++++++%7B%0A++++++++++++++let+_cap+=+hashmap!(%40count+%24(%24key),*);%0A++++++++++++++let+mut+_map+=%0A++++++++++++++++++::std::collections::HashMap::with_capacity(_cap);%0A++++++++++%24(%0A++++++++++++++_map.insert(%24key,+%24value);%0A++++++++++)*%0A++++++++++_map%0A++++++%7D%0A++%7D;%0A++%7D%0A++fn+main()%7B%0A++let+map+=+hashmap!%7B%0A++++++%22a%22+=%3E+1,%0A++++++%22b%22+=%3E+2,%0A++++++%22c%22+=%3E+3,%0A++%7D;%0A++assert_eq!(map%5B%22a%22%5D,+1);%0A++%7D&amp;edition=2018"></a></div>
+<p>示例7:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>  <span class="macro">macro_rules!</span> sum {
+      (<span class="macro-nonterminal">$e</span>:expr) =&gt; ({
+          <span class="kw">let </span>a = <span class="number">2</span>;
+          <span class="macro-nonterminal">$e </span>+ a
+      })
+  }
+  <span class="kw">fn </span>main(){
+      <span class="comment">// error[E0425]: cannot find value `a` in this scope
+      </span><span class="kw">let </span>four = <span class="macro">sum!</span>(a);
+  }</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Amacro_rules!+sum+%7B%0A++++++(%24e:expr)+=%3E+(%7B%0A++++++++++let+a+=+2;%0A++++++++++%24e+%2B+a%0A++++++%7D)%0A++%7D%0A++fn+main()%7B%0A++++++//+error%5BE0425%5D:+cannot+find+value+%60a%60+in+this+scope%0A++++++let+four+=+sum!(a);%0A++%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

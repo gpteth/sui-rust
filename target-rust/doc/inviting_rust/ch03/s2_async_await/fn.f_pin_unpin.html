@@ -1,0 +1,322 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="前奏"><title>f_pin_unpin in inviting_rust::ch03::s2_async_await - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">f_<wbr>pin_<wbr>unpin</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#前奏" title="前奏">前奏</a></li><li><a href="#异步实现细节pin-与-unpin" title="异步实现细节：Pin 与 UnPin">异步实现细节：Pin 与 UnPin</a></li><li><a href="#pin-与-unpin-属性" title="Pin 与 Unpin 属性">Pin 与 Unpin 属性</a></li><li><a href="#pin-用法约定" title="Pin 用法约定">Pin 用法约定</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch03::<wbr>s2_<wbr>async_<wbr>await</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch03</a>::<wbr><a href="index.html">s2_async_await</a></div><h1>Function <span class="fn">f_pin_unpin</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch03/s2_async_await.rs.html#975">Source</a> </span></div><pre class="rust item-decl"><code>pub fn f_pin_unpin()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="前奏"><a class="doc-anchor" href="#前奏">§</a>前奏</h4>
+<p>Safe Rust 无法构建自引用结构体：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>SelfReferential&lt;<span class="lifetime">'a</span>&gt; {
+    a: String,
+    b: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>String,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>a = String::from(<span class="string">"Hello"</span>);
+    <span class="kw">let </span>_sr = SelfReferential { a, b: <span class="kw-2">&amp;</span>a }; <span class="comment">// error: borrow of moved value: `a`
+</span>}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+SelfReferential%3C'a%3E+%7B%0A++++a:+String,%0A++++b:+%26'a+String,%0A%7D%0A%0Afn+main()+%7B%0A++++let+a+=+String::from(%22Hello%22);%0A++++let+_sr+=+SelfReferential+%7B+a,+b:+%26a+%7D;+//+error:+borrow+of+moved+value:+%60a%60%0A%7D&amp;edition=2018"></a></div>
+<p>另一个示例：即便使用 <code>Box&lt;T&gt;</code> 放到堆上，也存在风险：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>SelfReferential {
+    self_ptr: <span class="kw-2">*const </span><span class="self">Self</span>,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>heap_value = Box::new(SelfReferential {
+        self_ptr: <span class="number">0 </span><span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>,
+    });
+    <span class="kw">let </span>ptr = <span class="kw-2">&amp;*</span>heap_value <span class="kw">as </span><span class="kw-2">*const </span>SelfReferential;
+    heap_value.self_ptr = ptr;
+    <span class="macro">println!</span>(<span class="string">"heap value at: {:p}"</span>, heap_value);
+    <span class="macro">println!</span>(<span class="string">"internal reference: {:p}"</span>, heap_value.self_ptr);
+
+    <span class="comment">// 风险代码
+    </span><span class="kw">let </span>stack_value = mem::replace(<span class="kw-2">&amp;mut *</span>heap_value, SelfReferential {
+        self_ptr: <span class="number">0 </span><span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>,
+        _pin: PhantomPinned,
+    });
+    <span class="macro">println!</span>(<span class="string">"value at: {:p}"</span>, <span class="kw-2">&amp;</span>stack_value);
+    <span class="macro">println!</span>(<span class="string">"internal reference: {:p}"</span>, stack_value.self_ptr);
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+SelfReferential+%7B%0A++++self_ptr:+*const+Self,%0A%7D%0A%0Afn+main()+%7B%0A++++let+mut+heap_value+=+Box::new(SelfReferential+%7B%0A++++++++self_ptr:+0+as+*const+_,%0A++++%7D);%0A++++let+ptr+=+%26*heap_value+as+*const+SelfReferential;%0A++++heap_value.self_ptr+=+ptr;%0A++++println!(%22heap+value+at:+%7B:p%7D%22,+heap_value);%0A++++println!(%22internal+reference:+%7B:p%7D%22,+heap_value.self_ptr);%0A%0A++++//+%E9%A3%8E%E9%99%A9%E4%BB%A3%E7%A0%81%0A++++let+stack_value+=+mem::replace(%26mut+*heap_value,+SelfReferential+%7B%0A++++++++self_ptr:+0+as+*const+_,%0A++++++++_pin:+PhantomPinned,%0A++++%7D);%0A++++println!(%22value+at:+%7B:p%7D%22,+%26stack_value);%0A++++println!(%22internal+reference:+%7B:p%7D%22,+stack_value.self_ptr);%0A%7D&amp;edition=2018"></a></div>
+<p>使用指针来构建，但是有安全风险：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>SelfReferential {
+    a: String,
+    b: <span class="kw-2">*const </span>String,
+}
+
+<span class="kw">impl </span>SelfReferential {
+    <span class="kw">fn </span>new(txt: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            a: String::from(txt),
+            b: std::ptr::null(),
+        }
+    }
+
+    <span class="kw">fn </span>init(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">let </span>self_ref: <span class="kw-2">*const </span>String = <span class="kw-2">&amp;</span><span class="self">self</span>.a;
+        <span class="self">self</span>.b = self_ref;
+    }
+
+    <span class="kw">fn </span>a(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.a
+    }
+
+    <span class="kw">fn </span>b(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
+        <span class="kw">unsafe </span>{<span class="kw-2">&amp;*</span>(<span class="self">self</span>.b)}
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>sf1 = SelfReferential::new(<span class="string">"test1"</span>);
+    sf1.init();
+    <span class="kw">let </span><span class="kw-2">mut </span>sf2 = SelfReferential::new(<span class="string">"test2"</span>);
+    sf2.init();
+
+    <span class="macro">println!</span>(<span class="string">"a: {}, b: {}"</span>, sf1.a(), sf1.b());
+    <span class="macro">println!</span>(<span class="string">"a: {:p}, b: {:p}, t: {:p}"</span>, <span class="kw-2">&amp;</span>(sf1.a), sf1.b, <span class="kw-2">&amp;</span>(sf2.a));
+    <span class="comment">// 使用swap()函数交换两者，这里发生了move
+    </span>std::mem::swap(<span class="kw-2">&amp;mut </span>sf1, <span class="kw-2">&amp;mut </span>sf2);
+
+
+    sf1.a = <span class="string">"I've totally changed now!"</span>.to_string();
+    <span class="macro">println!</span>(<span class="string">"a: {}, b: {}"</span>, sf2.a(), sf2.b());
+    <span class="macro">println!</span>(<span class="string">"a: {:p}, b: {:p}, t: {:p}"</span>, <span class="kw-2">&amp;</span>(sf1.a), sf1.b, <span class="kw-2">&amp;</span>(sf2.a) ) ;
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bderive(Debug)%5D%0Astruct+SelfReferential+%7B%0A++++a:+String,%0A++++b:+*const+String,%0A%7D%0A%0Aimpl+SelfReferential+%7B%0A++++fn+new(txt:+%26str)+-%3E+Self+%7B%0A++++++++Self+%7B%0A++++++++++++a:+String::from(txt),%0A++++++++++++b:+std::ptr::null(),%0A++++++++%7D%0A++++%7D%0A%0A++++fn+init(%26mut+self)+%7B%0A++++++++let+self_ref:+*const+String+=+%26self.a;%0A++++++++self.b+=+self_ref;%0A++++%7D%0A%0A++++fn+a(%26self)+-%3E+%26str+%7B%0A++++++++%26self.a%0A++++%7D%0A%0A++++fn+b(%26self)+-%3E+%26String+%7B%0A++++++++unsafe+%7B%26*(self.b)%7D%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++let+mut+sf1+=+SelfReferential::new(%22test1%22);%0A++++sf1.init();%0A++++let+mut+sf2+=+SelfReferential::new(%22test2%22);%0A++++sf2.init();%0A%0A++++println!(%22a:+%7B%7D,+b:+%7B%7D%22,+sf1.a(),+sf1.b());%0A++++println!(%22a:+%7B:p%7D,+b:+%7B:p%7D,+t:+%7B:p%7D%22,+%26(sf1.a),+sf1.b,+%26(sf2.a));%0A++++//+%E4%BD%BF%E7%94%A8swap()%E5%87%BD%E6%95%B0%E4%BA%A4%E6%8D%A2%E4%B8%A4%E8%80%85%EF%BC%8C%E8%BF%99%E9%87%8C%E5%8F%91%E7%94%9F%E4%BA%86move%0A++++std::mem::swap(%26mut+sf1,+%26mut+sf2);%0A%0A%0A++++sf1.a+=+%22I've+totally+changed+now!%22.to_string();%0A++++println!(%22a:+%7B%7D,+b:+%7B%7D%22,+sf2.a(),+sf2.b());%0A++++println!(%22a:+%7B:p%7D,+b:+%7B:p%7D,+t:+%7B:p%7D%22,+%26(sf1.a),+sf1.b,+%26(sf2.a)+)+;%0A%7D&amp;edition=2018"></a></div>
+<p>Pin 到栈上：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::pin::Pin;
+<span class="kw">use </span>std::marker::PhantomPinned;
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>SelfReferential {
+    a: String,
+    b: <span class="kw-2">*const </span>String,
+    _marker: PhantomPinned,
+}
+
+<span class="kw">impl </span>SelfReferential {
+    <span class="kw">fn </span>new(txt: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            a: String::from(txt),
+            b: std::ptr::null(),
+            _marker: PhantomPinned, <span class="comment">// This makes our type `!Unpin`
+        </span>}
+    }
+
+    <span class="kw">fn </span>init&lt;<span class="lifetime">'a</span>&gt;(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">Self</span>&gt;) {
+        <span class="kw">let </span>self_ptr: <span class="kw-2">*const </span>String = <span class="kw-2">&amp;</span><span class="self">self</span>.a;
+        <span class="kw">let </span>this = <span class="kw">unsafe </span>{ <span class="self">self</span>.get_unchecked_mut() };
+        this.b = self_ptr;
+    }
+
+    <span class="kw">fn </span>a&lt;<span class="lifetime">'a</span>&gt;(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">Self</span>&gt;) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.get_ref().a
+    }
+
+    <span class="kw">fn </span>b&lt;<span class="lifetime">'a</span>&gt;(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">Self</span>&gt;) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>String {
+        <span class="kw">unsafe </span>{ <span class="kw-2">&amp;*</span>(<span class="self">self</span>.b) }
+    }
+}
+
+<span class="kw">pub fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>sf1 = <span class="kw">unsafe </span>{ Pin::new_unchecked(<span class="kw-2">&amp;mut </span>SelfReferential::new(<span class="string">"test1"</span>)) };
+    SelfReferential::init(sf1.as_mut());
+
+    <span class="kw">let </span><span class="kw-2">mut </span>sf2 = <span class="kw">unsafe </span>{ Pin::new_unchecked(<span class="kw-2">&amp;mut </span>SelfReferential::new(<span class="string">"test2"</span>)) };
+    SelfReferential::init(sf2.as_mut());
+
+    <span class="macro">println!</span>(<span class="string">"a: {}, b: {}"</span>, SelfReferential::a(sf1.as_ref()), SelfReferential::b(sf1.as_ref()));
+    std::mem::swap(sf1.get_mut(), sf2.get_mut());
+    <span class="macro">println!</span>(<span class="string">"a: {}, b: {}"</span>, SelfReferential::a(sf2.as_ref()), SelfReferential::b(sf2.as_ref()));
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::pin::Pin;%0Ause+std::marker::PhantomPinned;%0A%0A%23%5Bderive(Debug)%5D%0Astruct+SelfReferential+%7B%0A++++a:+String,%0A++++b:+*const+String,%0A++++_marker:+PhantomPinned,%0A%7D%0A%0Aimpl+SelfReferential+%7B%0A++++fn+new(txt:+%26str)+-%3E+Self+%7B%0A++++++++Self+%7B%0A++++++++++++a:+String::from(txt),%0A++++++++++++b:+std::ptr::null(),%0A++++++++++++_marker:+PhantomPinned,+//+This+makes+our+type+%60!Unpin%60%0A++++++++%7D%0A++++%7D%0A%0A++++fn+init%3C'a%3E(self:+Pin%3C%26'a+mut+Self%3E)+%7B%0A++++++++let+self_ptr:+*const+String+=+%26self.a;%0A++++++++let+this+=+unsafe+%7B+self.get_unchecked_mut()+%7D;%0A++++++++this.b+=+self_ptr;%0A++++%7D%0A%0A++++fn+a%3C'a%3E(self:+Pin%3C%26'a+Self%3E)+-%3E+%26'a+str+%7B%0A++++++++%26self.get_ref().a%0A++++%7D%0A%0A++++fn+b%3C'a%3E(self:+Pin%3C%26'a+Self%3E)+-%3E+%26'a+String+%7B%0A++++++++unsafe+%7B+%26*(self.b)+%7D%0A++++%7D%0A%7D%0A%0Apub+fn+main()+%7B%0A++++let+mut+sf1+=+unsafe+%7B+Pin::new_unchecked(%26mut+SelfReferential::new(%22test1%22))+%7D;%0A++++SelfReferential::init(sf1.as_mut());%0A%0A++++let+mut+sf2+=+unsafe+%7B+Pin::new_unchecked(%26mut+SelfReferential::new(%22test2%22))+%7D;%0A++++SelfReferential::init(sf2.as_mut());%0A%0A++++println!(%22a:+%7B%7D,+b:+%7B%7D%22,+SelfReferential::a(sf1.as_ref()),+SelfReferential::b(sf1.as_ref()));%0A++++std::mem::swap(sf1.get_mut(),+sf2.get_mut());%0A++++println!(%22a:+%7B%7D,+b:+%7B%7D%22,+SelfReferential::a(sf2.as_ref()),+SelfReferential::b(sf2.as_ref()));%0A%7D&amp;edition=2018"></a></div>
+<p>一个 <code>Pin&lt;&amp;mut T&gt;</code> 必须在被引用的T的整个生命周期被保持 pinned，这对于栈上的变量很难确认。
+为了帮助处理这类问题，就有了像<a href="https://docs.rs/pin-utils">pin-utils</a>这样的 crate。</p>
+<p>栈上 vs 堆上：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>main(){
+
+    <span class="kw">let </span>s = <span class="string">"hello"</span>.to_string();
+    <span class="kw">let </span>p = s.as_str();
+    <span class="macro">println!</span>(<span class="string">"{:p}"</span>, p);
+    <span class="macro">println!</span>(<span class="string">"{:p}"</span>, s.as_ptr());
+    <span class="macro">println!</span>(<span class="string">"{:p}"</span>, <span class="kw-2">&amp;</span>s);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()%7B%0A%0A++++let+s+=+%22hello%22.to_string();%0A++++let+p+=+s.as_str();%0A++++println!(%22%7B:p%7D%22,+p);%0A++++println!(%22%7B:p%7D%22,+s.as_ptr());%0A++++println!(%22%7B:p%7D%22,+%26s);%0A%7D&amp;edition=2018"></a></div>
+<p>Pin 到 堆上：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::pin::Pin;
+<span class="kw">use </span>std::marker::PhantomPinned;
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>SelfReferential {
+    a: String,
+    b: <span class="kw-2">*const </span>String,
+    _marker: PhantomPinned,
+}
+
+<span class="kw">impl </span>SelfReferential {
+    <span class="kw">fn </span>new(txt: <span class="kw-2">&amp;</span>str) -&gt; Pin&lt;Box&lt;<span class="self">Self</span>&gt;&gt; {
+        <span class="kw">let </span>t = <span class="self">Self </span>{
+            a: String::from(txt),
+            b: std::ptr::null(),
+            _marker: PhantomPinned,
+        };
+        <span class="kw">let </span><span class="kw-2">mut </span>boxed = Box::pin(t);
+        <span class="kw">let </span>self_ptr: <span class="kw-2">*const </span>String = <span class="kw-2">&amp;</span>boxed.as_ref().a;
+        <span class="kw">unsafe </span>{ boxed.as_mut().get_unchecked_mut().b = self_ptr };
+
+        boxed
+    }
+
+    <span class="kw">fn </span>a&lt;<span class="lifetime">'a</span>&gt;(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">Self</span>&gt;) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.get_ref().a
+    }
+
+    <span class="kw">fn </span>b&lt;<span class="lifetime">'a</span>&gt;(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">Self</span>&gt;) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>String {
+        <span class="kw">unsafe </span>{ <span class="kw-2">&amp;*</span>(<span class="self">self</span>.b) }
+    }
+}
+
+<span class="kw">pub fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>sf1 = SelfReferential::new(<span class="string">"test1"</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>sf2 = SelfReferential::new(<span class="string">"test2"</span>);
+
+    <span class="macro">println!</span>(<span class="string">"a: {}, b: {}"</span>,sf1.as_ref().a(), sf1.as_ref().b());
+    std::mem::swap(sf1.get_mut(), sf1.get_mut());
+    <span class="comment">// std::mem::swap(&amp;mut *sf1, &amp;mut *sf2);
+    </span><span class="macro">println!</span>(<span class="string">"a: {}, b: {}"</span>,sf2.as_ref().a(), sf2.as_ref().b());
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::pin::Pin;%0Ause+std::marker::PhantomPinned;%0A%0A%23%5Bderive(Debug)%5D%0Astruct+SelfReferential+%7B%0A++++a:+String,%0A++++b:+*const+String,%0A++++_marker:+PhantomPinned,%0A%7D%0A%0Aimpl+SelfReferential+%7B%0A++++fn+new(txt:+%26str)+-%3E+Pin%3CBox%3CSelf%3E%3E+%7B%0A++++++++let+t+=+Self+%7B%0A++++++++++++a:+String::from(txt),%0A++++++++++++b:+std::ptr::null(),%0A++++++++++++_marker:+PhantomPinned,%0A++++++++%7D;%0A++++++++let+mut+boxed+=+Box::pin(t);%0A++++++++let+self_ptr:+*const+String+=+%26boxed.as_ref().a;%0A++++++++unsafe+%7B+boxed.as_mut().get_unchecked_mut().b+=+self_ptr+%7D;%0A%0A++++++++boxed%0A++++%7D%0A%0A++++fn+a%3C'a%3E(self:+Pin%3C%26'a+Self%3E)+-%3E+%26'a+str+%7B%0A++++++++%26self.get_ref().a%0A++++%7D%0A%0A++++fn+b%3C'a%3E(self:+Pin%3C%26'a+Self%3E)+-%3E+%26'a+String+%7B%0A++++++++unsafe+%7B+%26*(self.b)+%7D%0A++++%7D%0A%7D%0A%0Apub+fn+main()+%7B%0A++++let+mut+sf1+=+SelfReferential::new(%22test1%22);%0A++++let+mut+sf2+=+SelfReferential::new(%22test2%22);%0A%0A++++println!(%22a:+%7B%7D,+b:+%7B%7D%22,sf1.as_ref().a(),+sf1.as_ref().b());%0A++++std::mem::swap(sf1.get_mut(),+sf1.get_mut());%0A++++//+std::mem::swap(%26mut+*sf1,+%26mut+*sf2);%0A++++println!(%22a:+%7B%7D,+b:+%7B%7D%22,sf2.as_ref().a(),+sf2.as_ref().b());%0A%7D&amp;edition=2018"></a></div>
+<p>另外一个示例：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::mem;
+<span class="kw">use </span>std::marker::PhantomPinned;
+<span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">struct </span>SelfReferential {
+    self_ptr: <span class="kw-2">*const </span><span class="self">Self</span>,
+    _pin: PhantomPinned,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>heap_value = Box::pin(SelfReferential {
+        self_ptr: <span class="number">0 </span><span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>,
+        _pin: PhantomPinned,
+    });
+    <span class="kw">let </span>ptr = <span class="kw-2">&amp;*</span>heap_value <span class="kw">as </span><span class="kw-2">*const </span>SelfReferential;
+
+    <span class="comment">// 这是安全的，因为修改结构体字段不会让结构体发生move
+    </span><span class="kw">unsafe </span>{
+        <span class="kw">let </span>mut_ref = Pin::as_mut(<span class="kw-2">&amp;mut </span>heap_value);
+        Pin::get_unchecked_mut(mut_ref).self_ptr = ptr;
+    }
+
+    <span class="macro">println!</span>(<span class="string">"heap value at: {:p}"</span>, heap_value);
+    <span class="macro">println!</span>(<span class="string">"internal reference: {:p}"</span>, heap_value.self_ptr);
+
+    <span class="comment">// 有效阻止了下面风险代码的发生
+
+    </span><span class="kw">let </span>stack_value = mem::replace(<span class="kw-2">&amp;mut *</span>heap_value, SelfReferential {
+        self_ptr: <span class="number">0 </span><span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>,
+        _pin: PhantomPinned,
+    });
+    <span class="macro">println!</span>(<span class="string">"value at: {:p}"</span>, <span class="kw-2">&amp;</span>stack_value);
+    <span class="macro">println!</span>(<span class="string">"internal reference: {:p}"</span>, stack_value.self_ptr);
+}
+
+
+
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::mem;%0Ause+std::marker::PhantomPinned;%0Ause+std::pin::Pin;%0A%0Astruct+SelfReferential+%7B%0A++++self_ptr:+*const+Self,%0A++++_pin:+PhantomPinned,%0A%7D%0A%0Afn+main()+%7B%0A++++let+mut+heap_value+=+Box::pin(SelfReferential+%7B%0A++++++++self_ptr:+0+as+*const+_,%0A++++++++_pin:+PhantomPinned,%0A++++%7D);%0A++++let+ptr+=+%26*heap_value+as+*const+SelfReferential;%0A%0A++++//+%E8%BF%99%E6%98%AF%E5%AE%89%E5%85%A8%E7%9A%84%EF%BC%8C%E5%9B%A0%E4%B8%BA%E4%BF%AE%E6%94%B9%E7%BB%93%E6%9E%84%E4%BD%93%E5%AD%97%E6%AE%B5%E4%B8%8D%E4%BC%9A%E8%AE%A9%E7%BB%93%E6%9E%84%E4%BD%93%E5%8F%91%E7%94%9Fmove%0A++++unsafe+%7B%0A++++++++let+mut_ref+=+Pin::as_mut(%26mut+heap_value);%0A++++++++Pin::get_unchecked_mut(mut_ref).self_ptr+=+ptr;%0A++++%7D%0A%0A++++println!(%22heap+value+at:+%7B:p%7D%22,+heap_value);%0A++++println!(%22internal+reference:+%7B:p%7D%22,+heap_value.self_ptr);%0A%0A++++//+%E6%9C%89%E6%95%88%E9%98%BB%E6%AD%A2%E4%BA%86%E4%B8%8B%E9%9D%A2%E9%A3%8E%E9%99%A9%E4%BB%A3%E7%A0%81%E7%9A%84%E5%8F%91%E7%94%9F%0A%0A++++let+stack_value+=+mem::replace(%26mut+*heap_value,+SelfReferential+%7B%0A++++++++self_ptr:+0+as+*const+_,%0A++++++++_pin:+PhantomPinned,%0A++++%7D);%0A++++println!(%22value+at:+%7B:p%7D%22,+%26stack_value);%0A++++println!(%22internal+reference:+%7B:p%7D%22,+stack_value.self_ptr);%0A%7D&amp;edition=2018"></a></div>
+<h4 id="异步实现细节pin-与-unpin"><a class="doc-anchor" href="#异步实现细节pin-与-unpin">§</a>异步实现细节：Pin 与 UnPin</h4>
+<p>async/await 的要支持引用，就必须支持自引用结构。</p>
+<p>Rust 源码内部：<a href="https://github.com/rust-lang/rust/blob/master/library/core/src/future/mod.rs">https://github.com/rust-lang/rust/blob/master/library/core/src/future/mod.rs</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// From Generator to Future
+</span><span class="kw">pub const fn </span>from_generator&lt;T&gt;(gen: T) -&gt; <span class="kw">impl </span>Future&lt;Output = T::Return&gt;
+<span class="kw">where
+    </span>T: Generator&lt;ResumeTy, Yield = ()&gt;,
+{
+    <span class="attr">#[rustc_diagnostic_item = <span class="string">"gen_future"</span>]
+    </span><span class="kw">struct </span>GenFuture&lt;T: Generator&lt;ResumeTy, Yield = ()&gt;&gt;(T);
+
+    <span class="comment">// 依赖这样一个重要事实：
+    // 即 async/await Future 是不可移动的，以便在基础生成器中创建自引用借用。
+    </span><span class="kw">impl</span>&lt;T: Generator&lt;ResumeTy, Yield = ()&gt;&gt; !Unpin <span class="kw">for </span>GenFuture&lt;T&gt; {}
+
+    <span class="kw">impl</span>&lt;T: Generator&lt;ResumeTy, Yield = ()&gt;&gt; Future <span class="kw">for </span>GenFuture&lt;T&gt; {
+        <span class="kw">type </span>Output = T::Return;
+        <span class="kw">fn </span>poll(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;<span class="self">Self</span>::Output&gt; {
+            <span class="comment">// SAFETY: Safe because we're !Unpin + !Drop, and this is just a field projection.
+            </span><span class="kw">let </span>gen = <span class="kw">unsafe </span>{ Pin::map_unchecked_mut(<span class="self">self</span>, |s| <span class="kw-2">&amp;mut </span>s.<span class="number">0</span>) };
+
+            <span class="comment">// Resume the generator, turning the `&amp;mut Context` into a `NonNull` raw pointer. The
+            // `.await` lowering will safely cast that back to a `&amp;mut Context`.
+            // resume 里传递上下文指针
+            </span><span class="kw">match </span>gen.resume(ResumeTy(NonNull::from(cx).cast::&lt;Context&lt;<span class="lifetime">'static</span>&gt;&gt;())) {
+                GeneratorState::Yielded(()) =&gt; Poll::Pending,
+                GeneratorState::Complete(x) =&gt; Poll::Ready(x),
+            }
+        }
+    }
+
+    GenFuture(gen)
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+From+Generator+to+Future%0Afn+main()+%7B%0A++++pub+const+fn+from_generator%3CT%3E(gen:+T)+-%3E+impl+Future%3COutput+=+T::Return%3E%0A++++where%0A++++++++T:+Generator%3CResumeTy,+Yield+=+()%3E,%0A++++%7B%0A++++++++%23%5Brustc_diagnostic_item+=+%22gen_future%22%5D%0A++++++++struct+GenFuture%3CT:+Generator%3CResumeTy,+Yield+=+()%3E%3E(T);%0A++++%0A++++++++//+%E4%BE%9D%E8%B5%96%E8%BF%99%E6%A0%B7%E4%B8%80%E4%B8%AA%E9%87%8D%E8%A6%81%E4%BA%8B%E5%AE%9E%EF%BC%9A%0A++++++++//+%E5%8D%B3+async/await+Future+%E6%98%AF%E4%B8%8D%E5%8F%AF%E7%A7%BB%E5%8A%A8%E7%9A%84%EF%BC%8C%E4%BB%A5%E4%BE%BF%E5%9C%A8%E5%9F%BA%E7%A1%80%E7%94%9F%E6%88%90%E5%99%A8%E4%B8%AD%E5%88%9B%E5%BB%BA%E8%87%AA%E5%BC%95%E7%94%A8%E5%80%9F%E7%94%A8%E3%80%82%0A++++++++impl%3CT:+Generator%3CResumeTy,+Yield+=+()%3E%3E+!Unpin+for+GenFuture%3CT%3E+%7B%7D%0A++++%0A++++++++impl%3CT:+Generator%3CResumeTy,+Yield+=+()%3E%3E+Future+for+GenFuture%3CT%3E+%7B%0A++++++++++++type+Output+=+T::Return;%0A++++++++++++fn+poll(self:+Pin%3C%26mut+Self%3E,+cx:+%26mut+Context%3C'_%3E)+-%3E+Poll%3CSelf::Output%3E+%7B%0A++++++++++++++++//+SAFETY:+Safe+because+we're+!Unpin+%2B+!Drop,+and+this+is+just+a+field+projection.%0A++++++++++++++++let+gen+=+unsafe+%7B+Pin::map_unchecked_mut(self,+%7Cs%7C+%26mut+s.0)+%7D;%0A++++%0A++++++++++++++++//+Resume+the+generator,+turning+the+%60%26mut+Context%60+into+a+%60NonNull%60+raw+pointer.+The%0A++++++++++++++++//+%60.await%60+lowering+will+safely+cast+that+back+to+a+%60%26mut+Context%60.%0A++++++++++++++++//+resume+%E9%87%8C%E4%BC%A0%E9%80%92%E4%B8%8A%E4%B8%8B%E6%96%87%E6%8C%87%E9%92%88%0A++++++++++++++++match+gen.resume(ResumeTy(NonNull::from(cx).cast::%3CContext%3C'static%3E%3E()))+%7B%0A++++++++++++++++++++GeneratorState::Yielded(())+=%3E+Poll::Pending,%0A++++++++++++++++++++GeneratorState::Complete(x)+=%3E+Poll::Ready(x),%0A++++++++++++++++%7D%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++GenFuture(gen)%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>Pin 利用类型系统避免 <code>&amp;mut T</code> 被拿到，达到 固定 引用/指针 的目的。</p>
+<p><a href="https://doc.rust-lang.org/std/pin/index.html">https://doc.rust-lang.org/std/pin/index.html</a></p>
+<ul>
+<li><a href="https://crates.io/crates/pin-project-lite">pin-project-lite</a></li>
+</ul>
+<h4 id="pin-与-unpin-属性"><a class="doc-anchor" href="#pin-与-unpin-属性">§</a>Pin 与 Unpin 属性</h4>
+<p>来自：<a href="https://rust-lang.github.io/async-book/04_pinning/01_chapter.html">Asynchronous Programming in Rust</a></p>
+<ul>
+<li>
+<p>如果 <code>T: Unpin</code>（默认会实现），那么 <code>Pin&lt;'a, T&gt;</code> 完全等价于 <code>&amp;'a mut T</code>。换言之： <code>Unpin</code> 意味着这个类型被移走也没关系，就算已经被固定了，所以 <code>Pin</code> 对这样的类型毫无影响。</p>
+</li>
+<li>
+<p>如果 <code>T: !Unpin</code>， 获取已经被固定的 <code>T</code> 类型示例的 <code>&amp;mut T</code>需要 <code>unsafe</code>。</p>
+</li>
+<li>
+<p>标准库中的大部分类型实现 <code>Unpin</code>，在 Rust 中遇到的多数普通类型也是一样。但是， <code>async/await</code> 生成的 <code>Future</code> 是个例外。</p>
+</li>
+<li>
+<p>你可以在 nightly 通过特性标记来给类型添加 <code>!Unpin</code> 约束，或者在 stable 给你的类型加 <code>std::marker::PhatomPinned</code> 字段。</p>
+</li>
+<li>
+<p>你可以将数据固定到栈上或堆上</p>
+</li>
+<li>
+<p>固定 <code>!Unpin</code> 对象到栈上需要 <code>unsafe</code></p>
+</li>
+<li>
+<p>固定 <code>!Unpin</code> 对象到堆上不需要<code> unsafe</code>。<code>Box::pin</code>可以快速完成这种固定。</p>
+</li>
+<li>
+<p>对于 <code>T: !Unpin</code> 的被固定数据，你必须维护好数据内存不会无效的约定，或者叫 固定时起直到释放。这是 固定约定 中的重要部分。</p>
+</li>
+</ul>
+<h4 id="pin-用法约定"><a class="doc-anchor" href="#pin-用法约定">§</a>Pin 用法约定</h4>
+<ul>
+<li>带 Pin 结构化包装的  投影 （<code>structural Pin projection</code>） :  <code>Pin&lt;&amp;mut Wrapper&lt;Field&gt;&gt; -&gt; Pin&lt;&amp;mut Field&gt;</code>。 <code>pin_utils::unsafe_pinned!</code> 宏可以做。
+<ul>
+<li>当结构体所有的字段都实现 Unpin ，整个结构体才可以实现 Unpin。（不允许任何实现使用不安全的方式将此类字段移出，比如 <code>Option::take</code> 是被禁止的）</li>
+<li>结构体不能用 <code>#[repr(packed)]</code></li>
+<li>如果<code>Drop::drop</code>不移动任何字段，则整个结构只能实现<code>Drop</code></li>
+</ul>
+</li>
+<li>不带 Pin 结构化包装的  投影 (<code>no structural Pin projection</code>) :  <code>Pin&lt;&amp;mut Wrapper&lt;Field&gt;&gt; -&gt; &amp;mut Field</code>。 <code>pin_utils::unsafe_unpinned!</code> 宏可以做的。</li>
+</ul>
+<p>参考： <a href="https://github.com/rust-lang/futures-rs/blob/0.3.0-alpha.15/futures-util/src/future/map.rs#L14">futures-util::future::map</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">impl</span>&lt;Fut, F&gt; Map&lt;Fut, F&gt; {
+    <span class="macro">unsafe_pinned!</span>(future: Fut); <span class="comment">// pin projection -----+
+    </span><span class="macro">unsafe_unpinned!</span>(f: <span class="prelude-ty">Option</span>&lt;F&gt;); <span class="comment">// not pinned --+   |
+//                                                  |   |
+//                 ...                              |   |
+//                                                  |   |
+    </span><span class="kw">fn </span>poll (<span class="kw-2">mut </span><span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, cx: <span class="kw-2">&amp;mut </span>Context&lt;<span class="lifetime">'_</span>&gt;) -&gt; Poll&lt;T&gt; {
+        <span class="comment">//                                          |   |
+        </span><span class="kw">match </span><span class="self">self</span>.as_mut().future().poll(cx) { <span class="comment">// &lt;----+ required here
+            </span>Poll::Pending =&gt; Poll::Pending, <span class="comment">//      |
+            </span>Poll::Ready(output) =&gt; { <span class="comment">//             |
+                </span><span class="kw">let </span>f = <span class="self">self</span>.f().take() <span class="comment">// &lt;--------+ allows this
+</span></code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=impl%3CFut,+F%3E+Map%3CFut,+F%3E+%7B%0A++++unsafe_pinned!(future:+Fut);+//+pin+projection+-----%2B%0A++++unsafe_unpinned!(f:+Option%3CF%3E);+//+not+pinned+--%2B+++%7C%0A//++++++++++++++++++++++++++++++++++++++++++++++++++%7C+++%7C%0A//+++++++++++++++++...++++++++++++++++++++++++++++++%7C+++%7C%0A//++++++++++++++++++++++++++++++++++++++++++++++++++%7C+++%7C%0A++++fn+poll+(mut+self:+Pin%3C%26mut+Self%3E,+cx:+%26mut+Context%3C'_%3E)+-%3E+Poll%3CT%3E+%7B%0A++++++++//++++++++++++++++++++++++++++++++++++++++++%7C+++%7C%0A++++++++match+self.as_mut().future().poll(cx)+%7B+//+%3C----%2B+required+here%0A++++++++++++Poll::Pending+=%3E+Poll::Pending,+//++++++%7C%0A++++++++++++Poll::Ready(output)+=%3E+%7B+//+++++++++++++%7C%0A++++++++++++++++let+f+=+self.f().take()+//+%3C--------%2B+allows+this%0A&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

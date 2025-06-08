@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Rust 语义：Move 语义 与 Copy 语义"><title>understand_copy in inviting_rust::ch02::s1_ownership - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">understand_<wbr>copy</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#rust-语义move-语义-与-copy-语义" title="Rust 语义：Move 语义 与 Copy 语义">Rust 语义：Move 语义 与 Copy 语义</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s1_<wbr>ownership</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s1_ownership</a></div><h1>Function <span class="fn">understand_copy</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s1_ownership.rs.html#255-257">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_copy()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="rust-语义move-语义-与-copy-语义"><a class="doc-anchor" href="#rust-语义move-语义-与-copy-语义">§</a>Rust 语义：Move 语义 与 Copy 语义</h4>
+<ul>
+<li>理解 按位复制</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Copy, Clone)]
+</span><span class="kw">struct </span>A(i8, i32);
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>a = A(<span class="number">1</span>, <span class="number">2</span>);
+    <span class="kw">let </span>b = a; <span class="comment">// 按位复制，复制后，b和a完全相同，包括内存对齐填充的padding部分。
+    </span><span class="kw">let </span>c = A(a.<span class="number">0</span>, a.<span class="number">1</span>); <span class="comment">// 逐成员复制，非按位复制，c和a的padding部分不一定相同。
+</span>}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bderive(Copy,+Clone)%5D%0Astruct+A(i8,+i32);%0Afn+main()+%7B%0A++++let+a+=+A(1,+2);%0A++++let+b+=+a;+//+%E6%8C%89%E4%BD%8D%E5%A4%8D%E5%88%B6%EF%BC%8C%E5%A4%8D%E5%88%B6%E5%90%8E%EF%BC%8Cb%E5%92%8Ca%E5%AE%8C%E5%85%A8%E7%9B%B8%E5%90%8C%EF%BC%8C%E5%8C%85%E6%8B%AC%E5%86%85%E5%AD%98%E5%AF%B9%E9%BD%90%E5%A1%AB%E5%85%85%E7%9A%84padding%E9%83%A8%E5%88%86%E3%80%82%0A++++let+c+=+A(a.0,+a.1);+//+%E9%80%90%E6%88%90%E5%91%98%E5%A4%8D%E5%88%B6%EF%BC%8C%E9%9D%9E%E6%8C%89%E4%BD%8D%E5%A4%8D%E5%88%B6%EF%BC%8Cc%E5%92%8Ca%E7%9A%84padding%E9%83%A8%E5%88%86%E4%B8%8D%E4%B8%80%E5%AE%9A%E7%9B%B8%E5%90%8C%E3%80%82%0A%7D&amp;edition=2018"></a></div>
+<p>示例二：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug, Copy, Clone)]
+</span><span class="kw">struct </span>A {
+    a: u16,
+    b: u8,
+    c: bool,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>a = unsound_a();
+    <span class="comment">// 尝试将 Some(a) 改为 a
+    </span><span class="kw">let </span>some_a = <span class="prelude-val">Some</span>(a);
+
+    <span class="macro">println!</span>(<span class="string">"a: {:#?}"</span>, a);
+    <span class="macro">println!</span>(<span class="string">"some_a: {:#?}"</span>, some_a);
+}
+
+
+<span class="kw">fn </span>unsound_a() -&gt; A {
+    <span class="attr">#[derive(Debug, Copy, Clone)]
+    </span><span class="kw">struct </span>B {
+        a: u16,
+        b: u8,
+        c: u8,
+    }
+    <span class="comment">// 依次修改 c 的值为 0，1，2 打印输出结果
+    </span><span class="kw">let </span>b = B { a: <span class="number">1</span>, b: <span class="number">1</span>, c: <span class="number">1 </span>};
+    <span class="kw">unsafe </span>{<span class="kw-2">*</span>(<span class="kw-2">&amp;</span>b <span class="kw">as </span><span class="kw-2">*const </span>B <span class="kw">as </span><span class="kw-2">*const </span>A) }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bderive(Debug,+Copy,+Clone)%5D%0Astruct+A+%7B%0A++++a:+u16,%0A++++b:+u8,%0A++++c:+bool,%0A%7D%0A%0Afn+main()+%7B%0A++++let+a+=+unsound_a();%0A++++//+%E5%B0%9D%E8%AF%95%E5%B0%86+Some(a)+%E6%94%B9%E4%B8%BA+a%0A++++let+some_a+=+Some(a);%0A%0A++++println!(%22a:+%7B:%23?%7D%22,+a);%0A++++println!(%22some_a:+%7B:%23?%7D%22,+some_a);%0A%7D%0A%0A%0Afn+unsound_a()+-%3E+A+%7B%0A++++%23%5Bderive(Debug,+Copy,+Clone)%5D%0A++++struct+B+%7B%0A++++++++a:+u16,%0A++++++++b:+u8,%0A++++++++c:+u8,%0A++++%7D%0A++++//+%E4%BE%9D%E6%AC%A1%E4%BF%AE%E6%94%B9+c+%E7%9A%84%E5%80%BC%E4%B8%BA+0%EF%BC%8C1%EF%BC%8C2+%E6%89%93%E5%8D%B0%E8%BE%93%E5%87%BA%E7%BB%93%E6%9E%9C%0A++++let+b+=+B+%7B+a:+1,+b:+1,+c:+1+%7D;%0A++++unsafe+%7B*(%26b+as+*const+B+as+*const+A)+%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例三：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused_variables)]
+
+</span><span class="kw">use </span>std::{ptr, mem};
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>d = String::from(<span class="string">"cccc"</span>);
+    <span class="kw">let </span>d_len = d.len();
+    <span class="comment">// {
+        </span><span class="kw">let </span><span class="kw-2">mut </span>c = String::with_capacity(d_len);
+
+        <span class="kw">unsafe </span>{
+            ptr::copy(<span class="kw-2">&amp;</span>d, <span class="kw-2">&amp;mut </span>c, <span class="number">1</span>);
+        };
+        <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c.as_ptr());
+        <span class="comment">// unsafe {
+        //     ptr::drop_in_place(c.as_mut_ptr());
+        // }
+        // 注掉 drop，会产生double free，
+        // 但是不注掉 drop，会产生无效指针
+        </span>mem::drop(c);
+    <span class="comment">// }
+
+    </span><span class="macro">println!</span>(<span class="string">"{:?}"</span>, d.as_ptr());
+    d.push_str(<span class="string">"c"</span>);
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, d);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A%23!%5Ballow(unused_variables)%5D%0Ause+std::%7Bptr,+mem%7D;%0A%0Afn+main()+%7B%0A++++let+mut+d+=+String::from(%22cccc%22);%0A++++let+d_len+=+d.len();%0A++++//+%7B%0A++++++++let+mut+c+=+String::with_capacity(d_len);%0A%0A++++++++unsafe+%7B%0A++++++++++++ptr::copy(%26d,+%26mut+c,+1);%0A++++++++%7D;%0A++++++++println!(%22%7B:?%7D%22,+c.as_ptr());%0A++++++++//+unsafe+%7B%0A++++++++//+++++ptr::drop_in_place(c.as_mut_ptr());%0A++++++++//+%7D%0A++++++++//+%E6%B3%A8%E6%8E%89+drop%EF%BC%8C%E4%BC%9A%E4%BA%A7%E7%94%9Fdouble+free%EF%BC%8C%0A++++++++//+%E4%BD%86%E6%98%AF%E4%B8%8D%E6%B3%A8%E6%8E%89+drop%EF%BC%8C%E4%BC%9A%E4%BA%A7%E7%94%9F%E6%97%A0%E6%95%88%E6%8C%87%E9%92%88%0A++++++++mem::drop(c);%0A++++//+%7D%0A%0A++++println!(%22%7B:?%7D%22,+d.as_ptr());%0A++++d.push_str(%22c%22);%0A++++println!(%22%7B%7D%22,+d);%0A%7D&amp;edition=2018"></a></div>
+<p>示例四: Copy 不一定只在栈上进行</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::cell::RefCell;
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>a = Box::new(RefCell::new(<span class="number">1</span>));
+    <span class="kw">let </span>b = Box::new(RefCell::new(<span class="number">2</span>));
+    <span class="kw-2">*</span>b.borrow_mut() = <span class="kw-2">*</span>a.borrow();
+    <span class="macro">println!</span>(<span class="string">"b = {}"</span>, b.borrow());
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::cell::RefCell;%0A%0Afn+main()+%7B%0A++++let+a+=+Box::new(RefCell::new(1));%0A++++let+b+=+Box::new(RefCell::new(2));%0A++++*b.borrow_mut()+=+*a.borrow();%0A++++println!(%22b+=+%7B%7D%22,+b.borrow());%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

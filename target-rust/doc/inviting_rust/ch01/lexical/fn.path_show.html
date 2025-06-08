@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Path 展示"><title>path_show in inviting_rust::ch01::lexical - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">path_<wbr>show</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#path-展示" title="Path 展示">Path 展示</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch01::<wbr>lexical</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch01</a>::<wbr><a href="index.html">lexical</a></div><h1>Function <span class="fn">path_show</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch01/lexical.rs.html#128-131">Source</a> </span></div><pre class="rust item-decl"><code>pub fn path_show()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="path-展示"><a class="doc-anchor" href="#path-展示">§</a>Path 展示</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// 模块路径
+</span><span class="kw">mod </span>a {
+    <span class="kw">fn </span>foo() {}
+
+    <span class="kw">mod </span>b {
+        <span class="kw">mod </span>c {
+            <span class="kw">fn </span>foo() {
+                <span class="kw">super</span>::<span class="kw">super</span>::foo(); <span class="comment">// call a's foo function
+                </span><span class="self">self</span>::<span class="kw">super</span>::<span class="kw">super</span>::foo(); <span class="comment">// call a's foo function
+            </span>}
+        }
+    }
+}
+
+<span class="comment">// 方法调用
+
+</span><span class="kw">struct </span>S;
+<span class="kw">impl </span>S {
+    <span class="kw">fn </span>f() { <span class="macro">println!</span>(<span class="string">"S"</span>); }
+}
+<span class="kw">trait </span>T1 {
+    <span class="kw">fn </span>f() { <span class="macro">println!</span>(<span class="string">"T1 f"</span>); }
+}
+<span class="kw">impl </span>T1 <span class="kw">for </span>S {}
+<span class="kw">trait </span>T2 {
+    <span class="kw">fn </span>f() { <span class="macro">println!</span>(<span class="string">"T2 f"</span>); }
+}
+<span class="kw">impl </span>T2 <span class="kw">for </span>S {}
+S::f();  <span class="comment">// Calls the inherent impl.
+// 完全限定无歧义调用
+</span>&lt;S <span class="kw">as </span>T1&gt;::f();  <span class="comment">// Calls the T1 trait function.
+</span>&lt;S <span class="kw">as </span>T2&gt;::f();  <span class="comment">// Calls the T2 trait function.
+
+
+// 泛型函数-turbofish操作符
+</span>(<span class="number">0</span>..<span class="number">10</span>).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+Vec::&lt;u8&gt;::with_capacity(<span class="number">1024</span>);</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+%E6%A8%A1%E5%9D%97%E8%B7%AF%E5%BE%84%0Afn+main()+%7B%0A++++mod+a+%7B%0A++++++++fn+foo()+%7B%7D%0A++++%0A++++++++mod+b+%7B%0A++++++++++++mod+c+%7B%0A++++++++++++++++fn+foo()+%7B%0A++++++++++++++++++++super::super::foo();+//+call+a's+foo+function%0A++++++++++++++++++++self::super::super::foo();+//+call+a's+foo+function%0A++++++++++++++++%7D%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A++++%0A++++//+%E6%96%B9%E6%B3%95%E8%B0%83%E7%94%A8%0A++++%0A++++struct+S;%0A++++impl+S+%7B%0A++++++++fn+f()+%7B+println!(%22S%22);+%7D%0A++++%7D%0A++++trait+T1+%7B%0A++++++++fn+f()+%7B+println!(%22T1+f%22);+%7D%0A++++%7D%0A++++impl+T1+for+S+%7B%7D%0A++++trait+T2+%7B%0A++++++++fn+f()+%7B+println!(%22T2+f%22);+%7D%0A++++%7D%0A++++impl+T2+for+S+%7B%7D%0A++++S::f();++//+Calls+the+inherent+impl.%0A++++//+%E5%AE%8C%E5%85%A8%E9%99%90%E5%AE%9A%E6%97%A0%E6%AD%A7%E4%B9%89%E8%B0%83%E7%94%A8%0A++++%3CS+as+T1%3E::f();++//+Calls+the+T1+trait+function.%0A++++%3CS+as+T2%3E::f();++//+Calls+the+T2+trait+function.%0A++++%0A++++%0A++++//+%E6%B3%9B%E5%9E%8B%E5%87%BD%E6%95%B0-turbofish%E6%93%8D%E4%BD%9C%E7%AC%A6%0A++++(0..10).collect::%3CVec%3C_%3E%3E();%0A++++Vec::%3Cu8%3E::with_capacity(1024);%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

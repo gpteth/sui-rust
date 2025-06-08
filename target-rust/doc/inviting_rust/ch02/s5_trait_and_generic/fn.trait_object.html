@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="trait 对象本质"><title>trait_object in inviting_rust::ch02::s5_trait_and_generic - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">trait_<wbr>object</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#trait-对象本质" title="trait 对象本质">trait 对象本质</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s5_<wbr>trait_<wbr>and_<wbr>generic</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s5_trait_and_generic</a></div><h1>Function <span class="fn">trait_object</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s5_trait_and_generic.rs.html#366-368">Source</a> </span></div><pre class="rust item-decl"><code>pub fn trait_object()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="trait-对象本质"><a class="doc-anchor" href="#trait-对象本质">§</a>trait 对象本质</h2>
+<p>示例 1:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">struct </span>CloningLab {
+        subjects: Vec&lt;Box&lt;Mammal&gt;&gt;,
+        <span class="comment">// subjects: Vec&lt;Box&lt;Mammal + Clone&gt;&gt;,
+    </span>}
+
+    <span class="kw">trait </span>Mammal {
+        <span class="kw">fn </span>walk(<span class="kw-2">&amp;</span><span class="self">self</span>);
+        <span class="kw">fn </span>run(<span class="kw-2">&amp;</span><span class="self">self</span>);
+    }
+
+    <span class="attr">#[derive(Clone)]
+    </span><span class="kw">struct </span>Cat {
+        meow_factor: u8,
+        purr_factor: u8
+    }
+
+    <span class="kw">impl </span>Mammal <span class="kw">for </span>Cat {
+        <span class="kw">fn </span>walk(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+            <span class="macro">println!</span>(<span class="string">"Cat::walk"</span>);
+        }
+        <span class="kw">fn </span>run(<span class="kw-2">&amp;</span><span class="self">self</span>) {
+            <span class="macro">println!</span>(<span class="string">"Cat::run"</span>)
+        }
+    }
+
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++struct+CloningLab+%7B%0A++++++++++++subjects:+Vec%3CBox%3CMammal%3E%3E,%0A++++++++++++//+subjects:+Vec%3CBox%3CMammal+%2B+Clone%3E%3E,%0A++++++++%7D%0A++++%0A++++++++trait+Mammal+%7B%0A++++++++++++fn+walk(%26self);%0A++++++++++++fn+run(%26self);%0A++++++++%7D%0A++++%0A++++++++%23%5Bderive(Clone)%5D%0A++++++++struct+Cat+%7B%0A++++++++++++meow_factor:+u8,%0A++++++++++++purr_factor:+u8%0A++++++++%7D%0A++++%0A++++++++impl+Mammal+for+Cat+%7B%0A++++++++++++fn+walk(%26self)+%7B%0A++++++++++++++++println!(%22Cat::walk%22);%0A++++++++++++%7D%0A++++++++++++fn+run(%26self)+%7B%0A++++++++++++++++println!(%22Cat::run%22)%0A++++++++++++%7D%0A++++++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+    <span class="attr">#![allow(unused)]
+    #![feature(raw)]
+
+    </span><span class="kw">use </span>std::{mem, raw};
+
+    <span class="comment">// an example trait
+    </span><span class="kw">trait </span>Foo {
+        <span class="kw">fn </span>bar(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; i32;
+    }
+
+    <span class="kw">impl </span>Foo <span class="kw">for </span>i32 {
+        <span class="kw">fn </span>bar(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; i32 {
+            <span class="kw-2">*</span><span class="self">self </span>+ <span class="number">1
+        </span>}
+    }
+
+    <span class="kw">fn </span>main() {
+        <span class="kw">let </span>value: i32 = <span class="number">123</span>;
+
+        <span class="comment">// let the compiler make a trait object
+        </span><span class="kw">let </span>object: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Foo = <span class="kw-2">&amp;</span>value;
+
+        <span class="comment">// look at the raw representation
+        </span><span class="kw">let </span>raw_object: raw::TraitObject = <span class="kw">unsafe </span>{ mem::transmute(object) };
+
+        <span class="comment">// the data pointer is the address of `value`
+        </span><span class="macro">assert_eq!</span>(raw_object.data <span class="kw">as </span><span class="kw-2">*const </span>i32, <span class="kw-2">&amp;</span>value <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_</span>);
+
+        <span class="kw">let </span>other_value: i32 = <span class="number">456</span>;
+
+        <span class="comment">// construct a new object, pointing to a different `i32`, being
+        // careful to use the `i32` vtable from `object`
+        </span><span class="kw">let </span>synthesized: <span class="kw-2">&amp;</span><span class="kw">dyn </span>Foo = <span class="kw">unsafe </span>{
+            mem::transmute(raw::TraitObject {
+                data: <span class="kw-2">&amp;</span>other_value <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*mut </span>(),
+                vtable: raw_object.vtable,
+            })
+        };
+
+        <span class="comment">// it should work just as if we had constructed a trait object out of
+        // `other_value` directly
+        </span><span class="macro">assert_eq!</span>(synthesized.bar(), <span class="number">457</span>);
+    }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A++++%23!%5Bfeature(raw)%5D%0A%0A++++%23!%5Ballow(unused)%5D%0Ause+std::%7Bmem,+raw%7D;%0A%0A++++//+an+example+trait%0A++++trait+Foo+%7B%0A++++++++fn+bar(%26self)+-%3E+i32;%0A++++%7D%0A%0A++++impl+Foo+for+i32+%7B%0A++++++++fn+bar(%26self)+-%3E+i32+%7B%0A++++++++++++*self+%2B+1%0A++++++++%7D%0A++++%7D%0A%0A++++fn+main()+%7B%0A++++++++let+value:+i32+=+123;%0A%0A++++++++//+let+the+compiler+make+a+trait+object%0A++++++++let+object:+%26dyn+Foo+=+%26value;%0A%0A++++++++//+look+at+the+raw+representation%0A++++++++let+raw_object:+raw::TraitObject+=+unsafe+%7B+mem::transmute(object)+%7D;%0A%0A++++++++//+the+data+pointer+is+the+address+of+%60value%60%0A++++++++assert_eq!(raw_object.data+as+*const+i32,+%26value+as+*const+_);%0A%0A++++++++let+other_value:+i32+=+456;%0A%0A++++++++//+construct+a+new+object,+pointing+to+a+different+%60i32%60,+being%0A++++++++//+careful+to+use+the+%60i32%60+vtable+from+%60object%60%0A++++++++let+synthesized:+%26dyn+Foo+=+unsafe+%7B%0A++++++++++++mem::transmute(raw::TraitObject+%7B%0A++++++++++++++++data:+%26other_value+as+*const+_+as+*mut+(),%0A++++++++++++++++vtable:+raw_object.vtable,%0A++++++++++++%7D)%0A++++++++%7D;%0A%0A++++++++//+it+should+work+just+as+if+we+had+constructed+a+trait+object+out+of%0A++++++++//+%60other_value%60+directly%0A++++++++assert_eq!(synthesized.bar(),+457);%0A++++%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>正常 trait Object 布局图：</p>
+<div class="example-wrap"><pre class="language-text"><code>
+                                                           cat&#39;s vtable
+Cat Layout                     Trait Object
++------------+              +--------------+             +---------------+
+|            |              |              |             |               |
+|            |              |              |     +-----&gt; | drop pointer  |
+| meow_factor|              |              |     |       |    size       |
+|            +&lt;--------------+data pointer |     |       |    align      |
+| purr_factor|              |              |     |       |               |
+|            |              | vtable pointer-----+       | run fn pointer|
+|            |              |              |             |walk fn pointer|
+|            |              |              |             |               |
++------------+              +--------------+             |               |
+                                                         |               |
+                                                         |               |
+                                                         |               |
+                                                         +---------------+
+</code></pre></div>
+<p>假设：trait Mammal + Clone 布局图：</p>
+<p>注意：非法</p>
+<div class="example-wrap"><pre class="language-text"><code>
+                                                                  Mammal
+                                                           cat&#39;s vtable
+Cat Layout                     Trait Object
++------------+              +--------------+             +---------------+
+|            |              |              |             |               |
+|            |              |              |     +-----&gt; | drop pointer  |
+| meow_factor|              |              |     |       |    size       |
+|            +&lt;--------------+data pointer |     |       |    align      |
+| purr_factor|              |              |     |       |               |
+|            |              | vtable pointer-----+       | run fn pointer|
+|            |              |              |             |walk fn pointer|
+|            |              |              +-----+       |               |
++------------+              +--------------+     |       |               |
+                                                 |       |               |
+                                                 |       |               |
+                                                 |       |               |
+                                                 |       +---------------+
+                                                 |
+                                                 |
+                                                 |           Clone Vtable
+                                                 |
+                                                 +-----&gt; +--------------+
+                                                         |              |
+                                                         | drop pointe  |
+                                                         |              |
+                                                         | size         |
+                                                         | align        |
+                                                         |              |
+                                                         |  clone       |
+                                                         |  fn pointer  |
+                                                         |              |
+                                                         +--------------+
+
+</code></pre></div>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>假设：<span class="kw">trait </span>继承(`<span class="kw">trait </span>MammalClone: Mammal+Clone`)布局图：
+
+注意：非法</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++%E5%81%87%E8%AE%BE%EF%BC%9Atrait+%E7%BB%A7%E6%89%BF(%60trait+MammalClone:+Mammal%2BClone%60)%E5%B8%83%E5%B1%80%E5%9B%BE%EF%BC%9A%0A++++%0A++++%E6%B3%A8%E6%84%8F%EF%BC%9A%E9%9D%9E%E6%B3%95%0A%7D&amp;edition=2018"></a></div>
+<div class="example-wrap"><pre class="language-text"><code>
+                                                            MammalClone
+                                                           cat&#39;s vtable
+Cat Layout                     Trait Object
++------------+              +--------------+             +-----------------+
+|            |              |              |             |                 |
+|            |              |              |     +-----&gt; | drop pointer    |
+| meow_factor|              |              |     |       |    size         |
+|            +&lt;--------------+data pointer |     |       |    align        |
+| purr_factor|              |              |     |       |                 |
+|            |              | vtable pointer-----+       | run fn pointer  |
+|            |              |              |             |walk fn pointer  |
+|            |              |              |             |                 |
++------------+              +--------------+             |clone fn pointer |
+                                                         |                 |
+                                                         |                 |
+                                                         |                 |
+                                                         +-----------------+
+</code></pre></div></div></details></section></div></main></body></html>

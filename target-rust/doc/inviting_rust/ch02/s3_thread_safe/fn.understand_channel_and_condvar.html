@@ -1,0 +1,1003 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="构建「无悔」并发系统"><title>understand_channel_and_condvar in inviting_rust::ch02::s3_thread_safe - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">understand_<wbr>channel_<wbr>and_<wbr>condvar</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#构建无悔并发系统" title="构建「无悔」并发系统">构建「无悔」并发系统</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s3_<wbr>thread_<wbr>safe</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s3_thread_safe</a></div><h1>Function <span class="fn">understand_channel_and_condvar</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s3_thread_safe.rs.html#1239-1241">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_channel_and_condvar()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="构建无悔并发系统"><a class="doc-anchor" href="#构建无悔并发系统">§</a>构建「无悔」并发系统</h4>
+<p>使用 channel 和 condvar ： 模拟并行组件</p>
+<ul>
+<li><a href="https://github.com/Amanieu/parking_lot">parking_lot</a></li>
+<li><a href="https://github.com/crossbeam-rs/crossbeam">crossbeam</a></li>
+</ul>
+<blockquote>
+<ol>
+<li>Rust 保证安全性上「无畏」，但不保证工程性上的「无悔」。</li>
+<li>但 Rust 有提供帮助我们建立「无悔」并发的「工具」。</li>
+<li>通过这些工具，结合从实际沉淀出来并发模型的最佳默认模式「event-loop」来建立健壮的并发应用。</li>
+<li>拓展阅读：
+<a href="https://medium.com/@polyglot_factotum/rust-regret-less-concurrency-2238b9e53333">Rust concurrency patterns: regret-less concurrency</a></li>
+</ol>
+</blockquote>
+<p>示例1: 用 channel 模拟 event</p>
+<div class="example-wrap"><pre class="language-text"><code>
+
+                                +--------------+
+                                | main thread  |      send work msg
++-----------------------------&gt; |    主 组 件     |  +-------------+
+|           receive result msg  |              |                  |
+|                               +--------------+                  work1
+|                                                                 |
+|                       send result msg                           |
+|              +-----------------------+                          work1
+|              |                       |                          |
+|              v                       |                          v
+|        result channel                |                      work channel
+|            +---+                     |                         +---+
+|            |   |                     |                         |   |
+|            +---+                     |                         +---+
+|            |   |                     |                         |   |
+|            +---+                 +---+----+                    +---+
+|            |   |                 | worker |                    |   |
+|            +---+                 | thread |                    +---+
+|            |   |                 |   并    |                   |   |
+|            +---+                 |   行    |                   +---+
+|            |   |                 |   组    |                   |   |
+|            +---+                 |   件    |                   +---+
+|            |   |                 +----+---+                    |   |
+|            +-+-+                      ^                        +-+-+
+|              |                        |receive work msg          |
+|              |                        |                          |
++--------------+                        +--------------------------+
+</code></pre></div>
+<p>代码</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>crossbeam_channel;
+<span class="kw">extern crate </span>rayon;
+
+<span class="kw">use </span>crossbeam_channel::unbounded;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::sync::{Arc, Condvar, Mutex};
+<span class="comment">// use parking_lot::{Mutex, Condvar};
+// use std::sync::Arc;
+</span><span class="kw">use </span>std::thread;
+
+<span class="comment">// 此消息用于发送到与「主组件」并行运行的其他组件。
+</span><span class="kw">enum </span>WorkMsg {
+    Work(u8),
+    Exit,
+}
+
+<span class="comment">// 此消息用于从并行运行的其他组件 发送回「主组件」。
+</span><span class="kw">enum </span>ResultMsg {
+    <span class="prelude-ty">Result</span>(u8),
+    Exited,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>(work_sender, work_receiver) = unbounded();
+    <span class="kw">let </span>(result_sender, result_receiver) = unbounded();
+
+    <span class="comment">// 生成子线程用于执行另一个并行组件
+    </span><span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| <span class="kw">loop </span>{
+        <span class="comment">// 接收并处理消息，直到收到 exit 消息
+        </span><span class="kw">match </span>work_receiver.recv() {
+            <span class="prelude-val">Ok</span>(WorkMsg::Work(num)) =&gt; {
+                <span class="comment">// 执行一些工作，并且发送消息给 Result 队列
+                </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(num));
+            }
+            <span class="prelude-val">Ok</span>(WorkMsg::Exit) =&gt; {
+                <span class="comment">// 发送 exit 确认消息
+                </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Exited);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a WorkMsg."</span>),
+        }
+    });
+
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">0</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Exit);
+
+    <span class="comment">// worker执行计数
+    </span><span class="kw">let </span><span class="kw-2">mut </span>counter = <span class="number">0</span>;
+
+    <span class="kw">loop </span>{
+        <span class="kw">match </span>result_receiver.recv() {
+            <span class="prelude-val">Ok</span>(ResultMsg::Result(num)) =&gt; {
+                <span class="comment">// 断言确保接收和发送的顺序是一致的
+                </span><span class="macro">assert_eq!</span>(num, counter);
+                counter += <span class="number">1</span>;
+            }
+            <span class="prelude-val">Ok</span>(ResultMsg::Exited) =&gt; {
+                <span class="comment">// 断言确保在接收两条工作消息之后收到退出消息
+                </span><span class="macro">assert_eq!</span>(<span class="number">2</span>, counter);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a ResultMsg."</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bmacro_use%5D%0Aextern+crate+crossbeam_channel;%0Aextern+crate+rayon;%0A%0Ause+crossbeam_channel::unbounded;%0Ause+std::collections::HashMap;%0Ause+std::sync::%7BArc,+Condvar,+Mutex%7D;%0A//+use+parking_lot::%7BMutex,+Condvar%7D;%0A//+use+std::sync::Arc;%0Ause+std::thread;%0A%0A//+%E6%AD%A4%E6%B6%88%E6%81%AF%E7%94%A8%E4%BA%8E%E5%8F%91%E9%80%81%E5%88%B0%E4%B8%8E%E3%80%8C%E4%B8%BB%E7%BB%84%E4%BB%B6%E3%80%8D%E5%B9%B6%E8%A1%8C%E8%BF%90%E8%A1%8C%E7%9A%84%E5%85%B6%E4%BB%96%E7%BB%84%E4%BB%B6%E3%80%82%0Aenum+WorkMsg+%7B%0A++++Work(u8),%0A++++Exit,%0A%7D%0A%0A//+%E6%AD%A4%E6%B6%88%E6%81%AF%E7%94%A8%E4%BA%8E%E4%BB%8E%E5%B9%B6%E8%A1%8C%E8%BF%90%E8%A1%8C%E7%9A%84%E5%85%B6%E4%BB%96%E7%BB%84%E4%BB%B6+%E5%8F%91%E9%80%81%E5%9B%9E%E3%80%8C%E4%B8%BB%E7%BB%84%E4%BB%B6%E3%80%8D%E3%80%82%0Aenum+ResultMsg+%7B%0A++++Result(u8),%0A++++Exited,%0A%7D%0A%0Afn+main()+%7B%0A++++let+(work_sender,+work_receiver)+=+unbounded();%0A++++let+(result_sender,+result_receiver)+=+unbounded();%0A%0A++++//+%E7%94%9F%E6%88%90%E5%AD%90%E7%BA%BF%E7%A8%8B%E7%94%A8%E4%BA%8E%E6%89%A7%E8%A1%8C%E5%8F%A6%E4%B8%80%E4%B8%AA%E5%B9%B6%E8%A1%8C%E7%BB%84%E4%BB%B6%0A++++let+_+=+thread::spawn(move+%7C%7C+loop+%7B%0A++++++++//+%E6%8E%A5%E6%94%B6%E5%B9%B6%E5%A4%84%E7%90%86%E6%B6%88%E6%81%AF%EF%BC%8C%E7%9B%B4%E5%88%B0%E6%94%B6%E5%88%B0+exit+%E6%B6%88%E6%81%AF%0A++++++++match+work_receiver.recv()+%7B%0A++++++++++++Ok(WorkMsg::Work(num))+=%3E+%7B%0A++++++++++++++++//+%E6%89%A7%E8%A1%8C%E4%B8%80%E4%BA%9B%E5%B7%A5%E4%BD%9C%EF%BC%8C%E5%B9%B6%E4%B8%94%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF%E7%BB%99+Result+%E9%98%9F%E5%88%97%0A++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(num));%0A++++++++++++%7D%0A++++++++++++Ok(WorkMsg::Exit)+=%3E+%7B%0A++++++++++++++++//+%E5%8F%91%E9%80%81+exit+%E7%A1%AE%E8%AE%A4%E6%B6%88%E6%81%AF%0A++++++++++++++++let+_+=+result_sender.send(ResultMsg::Exited);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+WorkMsg.%22),%0A++++++++%7D%0A++++%7D);%0A%0A++++let+_+=+work_sender.send(WorkMsg::Work(0));%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Exit);%0A%0A++++//+worker%E6%89%A7%E8%A1%8C%E8%AE%A1%E6%95%B0%0A++++let+mut+counter+=+0;%0A%0A++++loop+%7B%0A++++++++match+result_receiver.recv()+%7B%0A++++++++++++Ok(ResultMsg::Result(num))+=%3E+%7B%0A++++++++++++++++//+%E6%96%AD%E8%A8%80%E7%A1%AE%E4%BF%9D%E6%8E%A5%E6%94%B6%E5%92%8C%E5%8F%91%E9%80%81%E7%9A%84%E9%A1%BA%E5%BA%8F%E6%98%AF%E4%B8%80%E8%87%B4%E7%9A%84%0A++++++++++++++++assert_eq!(num,+counter);%0A++++++++++++++++counter+%2B=+1;%0A++++++++++++%7D%0A++++++++++++Ok(ResultMsg::Exited)+=%3E+%7B%0A++++++++++++++++//+%E6%96%AD%E8%A8%80%E7%A1%AE%E4%BF%9D%E5%9C%A8%E6%8E%A5%E6%94%B6%E4%B8%A4%E6%9D%A1%E5%B7%A5%E4%BD%9C%E6%B6%88%E6%81%AF%E4%B9%8B%E5%90%8E%E6%94%B6%E5%88%B0%E9%80%80%E5%87%BA%E6%B6%88%E6%81%AF%0A++++++++++++++++assert_eq!(2,+counter);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+ResultMsg.%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例二：引入线程池，工作的顺序将无法确定</p>
+<div class="example-wrap"><pre class="language-text"><code>                                +--------------+
+                                | main thread  |      send work msg
++-----------------------------&gt; |    主 组 件   |  +---------------+
+|           receive result msg  |              |                  |
+|                               +--------------+                  work1
+|                                                                 |
+|                       send result msg                           |
+|              +-----------------------+                          work0
+|              |                       |                          |
+|              v                       |                          v
+|        result channel       +--------+------+               work channel
+|            +---+            |               |                  +---+
+|            |   |            |               |                  |   |
+|            +---+       +----+---+      +----+----+             +---+
+|            |   |       | worker |      |  worker |             |   |
+|            +---+       | thread |thread|  thread |             +---+
+|            |   |       |   并    | pool|    并    |             |   |
+|            +---+       |   行    |     |    行    |             +---+
+|            |   |       |   组    |     |    组    |             |   |
+|            +---+       |   件    |     |    件    |             +---+
+|            |   |       +----+---+      +-----+---+             |   |
+|            +---+            ^                ^                 +---+
+|            |   |            |                |                 |   |
+|            +-+-+            +receive-work-msg+                 +-+-+
+|              |                        |                          |
+|              |                        |                          |
++--------------+                        +--------------------------+
+</code></pre></div>
+<p>代码：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>crossbeam_channel;
+<span class="kw">extern crate </span>rayon;
+
+<span class="kw">use </span>crossbeam_channel::unbounded;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="comment">// use std::sync::{Arc, Condvar, Mutex};
+
+</span><span class="kw">use </span>parking_lot::{Condvar, Mutex};
+<span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::thread;
+
+<span class="kw">enum </span>WorkMsg {
+    Work(u8),
+    Exit,
+}
+
+<span class="kw">enum </span>ResultMsg {
+    <span class="prelude-ty">Result</span>(u8),
+    Exited,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>(work_sender, work_receiver) = unbounded();
+    <span class="kw">let </span>(result_sender, result_receiver) = unbounded();
+    <span class="comment">// 引入线程池，开两个工作线程
+    </span><span class="kw">let </span>pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(<span class="number">2</span>)
+        .build()
+        .unwrap();
+
+    <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| <span class="kw">loop </span>{
+        <span class="kw">match </span>work_receiver.recv() {
+            <span class="prelude-val">Ok</span>(WorkMsg::Work(num)) =&gt; {
+                <span class="kw">let </span>result_sender = result_sender.clone();
+                <span class="comment">// 使用线程池中的线程
+                </span>pool.spawn(<span class="kw">move </span>|| {
+                    <span class="comment">// 执行一些工作，并且发送消息给 Result 队列
+                    </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(num));
+                });
+            }
+            <span class="prelude-val">Ok</span>(WorkMsg::Exit) =&gt; {
+                <span class="kw">let _ </span>= result_sender.send(ResultMsg::Exited);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a WorkMsg."</span>),
+        }
+    });
+
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">0</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Exit);
+
+    <span class="kw">loop </span>{
+        <span class="kw">match </span>result_receiver.recv() {
+            <span class="prelude-val">Ok</span>(ResultMsg::Result(<span class="kw">_</span>)) =&gt; {
+                <span class="comment">// 不能再断言顺序了
+            </span>}
+            <span class="prelude-val">Ok</span>(ResultMsg::Exited) =&gt; {
+                <span class="comment">// 也不能断言在退出消息之前已经收到了结果
+                </span><span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a ResultMsg."</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bmacro_use%5D%0Aextern+crate+crossbeam_channel;%0Aextern+crate+rayon;%0A%0Ause+crossbeam_channel::unbounded;%0Ause+std::collections::HashMap;%0A//+use+std::sync::%7BArc,+Condvar,+Mutex%7D;%0A%0Ause+parking_lot::%7BCondvar,+Mutex%7D;%0Ause+std::sync::Arc;%0Ause+std::thread;%0A%0Aenum+WorkMsg+%7B%0A++++Work(u8),%0A++++Exit,%0A%7D%0A%0Aenum+ResultMsg+%7B%0A++++Result(u8),%0A++++Exited,%0A%7D%0A%0Afn+main()+%7B%0A++++let+(work_sender,+work_receiver)+=+unbounded();%0A++++let+(result_sender,+result_receiver)+=+unbounded();%0A++++//+%E5%BC%95%E5%85%A5%E7%BA%BF%E7%A8%8B%E6%B1%A0%EF%BC%8C%E5%BC%80%E4%B8%A4%E4%B8%AA%E5%B7%A5%E4%BD%9C%E7%BA%BF%E7%A8%8B%0A++++let+pool+=+rayon::ThreadPoolBuilder::new()%0A++++++++.num_threads(2)%0A++++++++.build()%0A++++++++.unwrap();%0A%0A++++let+_+=+thread::spawn(move+%7C%7C+loop+%7B%0A++++++++match+work_receiver.recv()+%7B%0A++++++++++++Ok(WorkMsg::Work(num))+=%3E+%7B%0A++++++++++++++++let+result_sender+=+result_sender.clone();%0A++++++++++++++++//+%E4%BD%BF%E7%94%A8%E7%BA%BF%E7%A8%8B%E6%B1%A0%E4%B8%AD%E7%9A%84%E7%BA%BF%E7%A8%8B%0A++++++++++++++++pool.spawn(move+%7C%7C+%7B%0A++++++++++++++++++++//+%E6%89%A7%E8%A1%8C%E4%B8%80%E4%BA%9B%E5%B7%A5%E4%BD%9C%EF%BC%8C%E5%B9%B6%E4%B8%94%E5%8F%91%E9%80%81%E6%B6%88%E6%81%AF%E7%BB%99+Result+%E9%98%9F%E5%88%97%0A++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(num));%0A++++++++++++++++%7D);%0A++++++++++++%7D%0A++++++++++++Ok(WorkMsg::Exit)+=%3E+%7B%0A++++++++++++++++let+_+=+result_sender.send(ResultMsg::Exited);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+WorkMsg.%22),%0A++++++++%7D%0A++++%7D);%0A%0A++++let+_+=+work_sender.send(WorkMsg::Work(0));%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Exit);%0A%0A++++loop+%7B%0A++++++++match+result_receiver.recv()+%7B%0A++++++++++++Ok(ResultMsg::Result(_))+=%3E+%7B%0A++++++++++++++++//+%E4%B8%8D%E8%83%BD%E5%86%8D%E6%96%AD%E8%A8%80%E9%A1%BA%E5%BA%8F%E4%BA%86%0A++++++++++++%7D%0A++++++++++++Ok(ResultMsg::Exited)+=%3E+%7B%0A++++++++++++++++//+%E4%B9%9F%E4%B8%8D%E8%83%BD%E6%96%AD%E8%A8%80%E5%9C%A8%E9%80%80%E5%87%BA%E6%B6%88%E6%81%AF%E4%B9%8B%E5%89%8D%E5%B7%B2%E7%BB%8F%E6%94%B6%E5%88%B0%E4%BA%86%E7%BB%93%E6%9E%9C%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+ResultMsg.%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例3: 确保工作结束再退出</p>
+<div class="example-wrap"><pre class="language-text"><code>
+                                    +--------------+
+                                    | main thread  |      send work msg
+    +-----------------------------&gt; |    主 组 件   |  +--------------------------+
+    |           receive result msg  |              |                             +
+    |                               +--------------+                             work1
+    |                                                                            |
+    |                       send result msg                                      |
+    |              +-----------------------+                                     work0
+    |              |                       |                                     |
+    |              v                       |                                     v
+    |        result channel       +--------+-------------------------+       work channel
+    |            +---+            |              thread              |          +---+
+    |            |   |            |               pool               |          |   |
+    |            +---+       +----+---+                         +----+----+     +---+
+    |            |   |       | worker |                         |  worker |     |   |
+    |            +---+       | thread |     pool_res_channel    |  thread |     +---+
+    |            |   |       |   并   +-------------------------+    并    |     |   |
+    |            +---+       |   行    send msg when job finished     行   |     +---+
+    |            |   |       |   组   +-------------------------+    组    |     |   |
+    |            +---+       |   件   |                         |    件    |     +---+
+    |            |   |       +----+---+                         +-----+---+     |   |
+    |            +---+            ^                                   ^         +---+
+    |            |   |            |                                   |         |   |
+    |            +-+-+            +receive-work-msg+------------------+         +-+-+
+    |              |                        |                                     |
+    |              |                        |                                     |
+    +--------------+                        +-------------------------------------+
+
+
+</code></pre></div>
+<p>代码：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>crossbeam_channel;
+<span class="kw">extern crate </span>rayon;
+
+<span class="kw">use </span>crossbeam_channel::unbounded;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="comment">// use std::sync::{Arc, Condvar, Mutex};
+
+</span><span class="kw">use </span>parking_lot::{Condvar, Mutex};
+<span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::thread;
+
+<span class="kw">enum </span>WorkMsg {
+    Work(u8),
+    Exit,
+}
+
+<span class="kw">enum </span>ResultMsg {
+    <span class="prelude-ty">Result</span>(u8),
+    Exited,
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>(work_sender, work_receiver) = unbounded();
+    <span class="kw">let </span>(result_sender, result_receiver) = unbounded();
+    <span class="comment">// 添加一个新的Channel，Worker使用它来通知“并行”组件已经完成了一个工作单元
+    </span><span class="kw">let </span>(pool_result_sender, pool_result_receiver) = unbounded();
+    <span class="kw">let </span><span class="kw-2">mut </span>ongoing_work = <span class="number">0</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>exiting = <span class="bool-val">false</span>;
+    <span class="comment">// 使用线程池
+    </span><span class="kw">let </span>pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(<span class="number">2</span>)
+        .build()
+        .unwrap();
+
+    <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| <span class="kw">loop </span>{
+        <span class="comment">// 使用 corssbeam 提供的 select! 宏 选择一个就绪工作
+        </span><span class="macro">select!</span> {
+            recv(work_receiver) -&gt; msg =&gt; {
+                <span class="kw">match </span>msg {
+                    <span class="prelude-val">Ok</span>(WorkMsg::Work(num)) =&gt; {
+                        <span class="kw">let </span>result_sender = result_sender.clone();
+                        <span class="kw">let </span>pool_result_sender = pool_result_sender.clone();
+
+                        <span class="comment">// 注意，这里正在池上启动一个新的工作单元。
+                        </span>ongoing_work += <span class="number">1</span>;
+
+                        pool.spawn(<span class="kw">move </span>|| {
+                            <span class="comment">// 1. 发送结果给「主组件」
+                            </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(num));
+
+                            <span class="comment">// 2. 让并行组件知道这里完成了一个工作单元
+                            </span><span class="kw">let _ </span>= pool_result_sender.send(());
+                        });
+                    },
+                    <span class="prelude-val">Ok</span>(WorkMsg::Exit) =&gt; {
+                        <span class="comment">// N注意，这里接收请求并退出
+                        </span>exiting = <span class="bool-val">true</span>;
+
+                        <span class="comment">// 如果没有正则进行的工作则立即退出
+                        </span><span class="kw">if </span>ongoing_work == <span class="number">0 </span>{
+                            <span class="kw">let _ </span>= result_sender.send(ResultMsg::Exited);
+                            <span class="kw">break</span>;
+                        }
+                    },
+                    <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a WorkMsg."</span>),
+                }
+            },
+            recv(pool_result_receiver) -&gt; <span class="kw">_ </span>=&gt; {
+                <span class="kw">if </span>ongoing_work == <span class="number">0 </span>{
+                    <span class="macro">panic!</span>(<span class="string">"Received an unexpected pool result."</span>);
+                }
+
+                <span class="comment">// 注意，一个工作单元已经被完成
+                </span>ongoing_work -=<span class="number">1</span>;
+
+                <span class="comment">// 如果没有正在进行的工作，并且接收到了退出请求，那么就退出
+                </span><span class="kw">if </span>ongoing_work == <span class="number">0 </span>&amp;&amp; exiting {
+                    <span class="kw">let _ </span>= result_sender.send(ResultMsg::Exited);
+                    <span class="kw">break</span>;
+                }
+            },
+        }
+    });
+
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">0</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Exit);
+
+    <span class="kw">let </span><span class="kw-2">mut </span>counter = <span class="number">0</span>;
+
+    <span class="kw">loop </span>{
+        <span class="kw">match </span>result_receiver.recv() {
+            <span class="prelude-val">Ok</span>(ResultMsg::Result(<span class="kw">_</span>)) =&gt; {
+                <span class="comment">// 计数当前完成的工作单元
+                </span>counter += <span class="number">1</span>;
+            }
+            <span class="prelude-val">Ok</span>(ResultMsg::Exited) =&gt; {
+                <span class="comment">// 断言检测：是在接收到两个请求以后退出的
+                </span><span class="macro">assert_eq!</span>(<span class="number">2</span>, counter);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a ResultMsg."</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bmacro_use%5D%0Aextern+crate+crossbeam_channel;%0Aextern+crate+rayon;%0A%0Ause+crossbeam_channel::unbounded;%0Ause+std::collections::HashMap;%0A//+use+std::sync::%7BArc,+Condvar,+Mutex%7D;%0A%0Ause+parking_lot::%7BCondvar,+Mutex%7D;%0Ause+std::sync::Arc;%0Ause+std::thread;%0A%0Aenum+WorkMsg+%7B%0A++++Work(u8),%0A++++Exit,%0A%7D%0A%0Aenum+ResultMsg+%7B%0A++++Result(u8),%0A++++Exited,%0A%7D%0A%0Afn+main()+%7B%0A++++let+(work_sender,+work_receiver)+=+unbounded();%0A++++let+(result_sender,+result_receiver)+=+unbounded();%0A++++//+%E6%B7%BB%E5%8A%A0%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84Channel%EF%BC%8CWorker%E4%BD%BF%E7%94%A8%E5%AE%83%E6%9D%A5%E9%80%9A%E7%9F%A5%E2%80%9C%E5%B9%B6%E8%A1%8C%E2%80%9D%E7%BB%84%E4%BB%B6%E5%B7%B2%E7%BB%8F%E5%AE%8C%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++let+(pool_result_sender,+pool_result_receiver)+=+unbounded();%0A++++let+mut+ongoing_work+=+0;%0A++++let+mut+exiting+=+false;%0A++++//+%E4%BD%BF%E7%94%A8%E7%BA%BF%E7%A8%8B%E6%B1%A0%0A++++let+pool+=+rayon::ThreadPoolBuilder::new()%0A++++++++.num_threads(2)%0A++++++++.build()%0A++++++++.unwrap();%0A%0A++++let+_+=+thread::spawn(move+%7C%7C+loop+%7B%0A++++++++//+%E4%BD%BF%E7%94%A8+corssbeam+%E6%8F%90%E4%BE%9B%E7%9A%84+select!+%E5%AE%8F+%E9%80%89%E6%8B%A9%E4%B8%80%E4%B8%AA%E5%B0%B1%E7%BB%AA%E5%B7%A5%E4%BD%9C%0A++++++++select!+%7B%0A++++++++++++recv(work_receiver)+-%3E+msg+=%3E+%7B%0A++++++++++++++++match+msg+%7B%0A++++++++++++++++++++Ok(WorkMsg::Work(num))+=%3E+%7B%0A++++++++++++++++++++++++let+result_sender+=+result_sender.clone();%0A++++++++++++++++++++++++let+pool_result_sender+=+pool_result_sender.clone();%0A%0A++++++++++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%AD%A3%E5%9C%A8%E6%B1%A0%E4%B8%8A%E5%90%AF%E5%8A%A8%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E3%80%82%0A++++++++++++++++++++++++ongoing_work+%2B=+1;%0A%0A++++++++++++++++++++++++pool.spawn(move+%7C%7C+%7B%0A++++++++++++++++++++++++++++//+1.+%E5%8F%91%E9%80%81%E7%BB%93%E6%9E%9C%E7%BB%99%E3%80%8C%E4%B8%BB%E7%BB%84%E4%BB%B6%E3%80%8D%0A++++++++++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(num));%0A%0A++++++++++++++++++++++++++++//+2.+%E8%AE%A9%E5%B9%B6%E8%A1%8C%E7%BB%84%E4%BB%B6%E7%9F%A5%E9%81%93%E8%BF%99%E9%87%8C%E5%AE%8C%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++++++++++++++++++++++++++let+_+=+pool_result_sender.send(());%0A++++++++++++++++++++++++%7D);%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++Ok(WorkMsg::Exit)+=%3E+%7B%0A++++++++++++++++++++++++//+N%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%8E%A5%E6%94%B6%E8%AF%B7%E6%B1%82%E5%B9%B6%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++exiting+=+true;%0A%0A++++++++++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%88%99%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%88%99%E7%AB%8B%E5%8D%B3%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++if+ongoing_work+==+0+%7B%0A++++++++++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++++++++++break;%0A++++++++++++++++++++++++%7D%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++_+=%3E+panic!(%22Error+receiving+a+WorkMsg.%22),%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++++++recv(pool_result_receiver)+-%3E+_+=%3E+%7B%0A++++++++++++++++if+ongoing_work+==+0+%7B%0A++++++++++++++++++++panic!(%22Received+an+unexpected+pool+result.%22);%0A++++++++++++++++%7D%0A%0A++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E5%B7%B2%E7%BB%8F%E8%A2%AB%E5%AE%8C%E6%88%90%0A++++++++++++++++ongoing_work+-=1;%0A%0A++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%9C%A8%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%8E%A5%E6%94%B6%E5%88%B0%E4%BA%86%E9%80%80%E5%87%BA%E8%AF%B7%E6%B1%82%EF%BC%8C%E9%82%A3%E4%B9%88%E5%B0%B1%E9%80%80%E5%87%BA%0A++++++++++++++++if+ongoing_work+==+0+%26%26+exiting+%7B%0A++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++break;%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++%7D%0A++++%7D);%0A%0A++++let+_+=+work_sender.send(WorkMsg::Work(0));%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Exit);%0A%0A++++let+mut+counter+=+0;%0A%0A++++loop+%7B%0A++++++++match+result_receiver.recv()+%7B%0A++++++++++++Ok(ResultMsg::Result(_))+=%3E+%7B%0A++++++++++++++++//+%E8%AE%A1%E6%95%B0%E5%BD%93%E5%89%8D%E5%AE%8C%E6%88%90%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++++++++++++++counter+%2B=+1;%0A++++++++++++%7D%0A++++++++++++Ok(ResultMsg::Exited)+=%3E+%7B%0A++++++++++++++++//+%E6%96%AD%E8%A8%80%E6%A3%80%E6%B5%8B%EF%BC%9A%E6%98%AF%E5%9C%A8%E6%8E%A5%E6%94%B6%E5%88%B0%E4%B8%A4%E4%B8%AA%E8%AF%B7%E6%B1%82%E4%BB%A5%E5%90%8E%E9%80%80%E5%87%BA%E7%9A%84%0A++++++++++++++++assert_eq!(2,+counter);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+ResultMsg.%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例3 重构</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>crossbeam_channel;
+<span class="kw">extern crate </span>rayon;
+
+<span class="kw">use </span>crossbeam_channel::unbounded;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="comment">// use std::sync::{Arc, Condvar, Mutex};
+
+</span><span class="kw">use </span>parking_lot::{Condvar, Mutex};
+<span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::thread;
+
+<span class="kw">enum </span>WorkMsg {
+    Work(u8),
+    Exit,
+}
+
+<span class="kw">enum </span>ResultMsg {
+    <span class="prelude-ty">Result</span>(u8),
+    Exited,
+}
+
+<span class="kw">struct </span>WorkerState {
+    ongoing: i16,
+    exiting: bool,
+}
+
+<span class="kw">impl </span>WorkerState {
+    <span class="kw">fn </span>init() -&gt; <span class="self">Self </span>{
+        WorkerState{ ongoing: <span class="number">0</span>, exiting: <span class="bool-val">false </span>}
+    }
+
+    <span class="kw">fn </span>set_ongoing(<span class="kw-2">&amp;mut </span><span class="self">self</span>, count: i16) {
+        <span class="self">self</span>.ongoing += count;
+    }
+
+    <span class="kw">fn </span>set_exiting(<span class="kw-2">&amp;mut </span><span class="self">self</span>, exit_state: bool) {
+        <span class="self">self</span>.exiting = exit_state;
+    }
+
+    <span class="kw">fn </span>is_exiting(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.exiting == <span class="bool-val">true
+    </span>}
+
+    <span class="kw">fn </span>is_nomore_work(<span class="kw-2">&amp;</span><span class="self">self</span>)-&gt; bool {
+        <span class="self">self</span>.ongoing == <span class="number">0
+    </span>}
+
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>(work_sender, work_receiver) = unbounded();
+    <span class="kw">let </span>(result_sender, result_receiver) = unbounded();
+    <span class="comment">// 添加一个新的Channel，Worker使用它来通知“并行”组件已经完成了一个工作单元
+    </span><span class="kw">let </span>(pool_result_sender, pool_result_receiver) = unbounded();
+    <span class="kw">let </span><span class="kw-2">mut </span>worker_state = WorkerState::init();
+
+    <span class="comment">// 使用线程池
+    </span><span class="kw">let </span>pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(<span class="number">2</span>)
+        .build()
+        .unwrap();
+
+    <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| <span class="kw">loop </span>{
+        <span class="comment">// 使用 corssbeam 提供的 select! 宏 选择一个就绪工作
+        </span><span class="macro">select!</span> {
+            recv(work_receiver) -&gt; msg =&gt; {
+                <span class="kw">match </span>msg {
+                    <span class="prelude-val">Ok</span>(WorkMsg::Work(num)) =&gt; {
+                        <span class="kw">let </span>result_sender = result_sender.clone();
+                        <span class="kw">let </span>pool_result_sender = pool_result_sender.clone();
+
+                        <span class="comment">// 注意，这里正在池上启动一个新的工作单元。
+                        </span>worker_state.set_ongoing(<span class="number">1</span>);
+
+                        pool.spawn(<span class="kw">move </span>|| {
+                            <span class="comment">// 1. 发送结果给「主组件」
+                            </span>result_sender.send(ResultMsg::Result(num));
+
+                            <span class="comment">// 2. 让并行组件知道这里完成了一个工作单元
+                            </span>pool_result_sender.send(());
+                        });
+                    },
+                    <span class="prelude-val">Ok</span>(WorkMsg::Exit) =&gt; {
+                        <span class="comment">// N注意，这里接收请求并退出
+                        // exiting = true;
+                        </span>worker_state.set_exiting(<span class="bool-val">true</span>);
+
+                        <span class="comment">// 如果没有正则进行的工作则立即退出
+                        </span><span class="kw">if </span>worker_state.is_nomore_work() {
+                            result_sender.send(ResultMsg::Exited);
+                            <span class="kw">break</span>;
+                        }
+                    },
+                    <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a WorkMsg."</span>),
+                }
+            },
+            recv(pool_result_receiver) -&gt; <span class="kw">_ </span>=&gt; {
+                <span class="kw">if </span>worker_state.is_nomore_work() {
+                    <span class="macro">panic!</span>(<span class="string">"Received an unexpected pool result."</span>);
+                }
+
+                <span class="comment">// 注意，一个工作单元已经被完成
+                </span>worker_state.set_ongoing(-<span class="number">1</span>);
+
+                <span class="comment">// 如果没有正在进行的工作，并且接收到了退出请求，那么就退出
+                </span><span class="kw">if </span>worker_state.is_nomore_work() &amp;&amp; worker_state.is_exiting() {
+                    result_sender.send(ResultMsg::Exited);
+                    <span class="kw">break</span>;
+                }
+            },
+        }
+    });
+
+    work_sender.send(WorkMsg::Work(<span class="number">0</span>));
+    work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    work_sender.send(WorkMsg::Exit);
+
+    <span class="kw">let </span><span class="kw-2">mut </span>counter = <span class="number">0</span>;
+
+    <span class="kw">loop </span>{
+        <span class="kw">match </span>result_receiver.recv() {
+            <span class="prelude-val">Ok</span>(ResultMsg::Result(<span class="kw">_</span>)) =&gt; {
+                <span class="comment">// 计数当前完成的工作单元
+                </span>counter += <span class="number">1</span>;
+            }
+            <span class="prelude-val">Ok</span>(ResultMsg::Exited) =&gt; {
+                <span class="comment">// 断言检测：是在接收到两个请求以后退出的
+                </span><span class="macro">assert_eq!</span>(<span class="number">2</span>, counter);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a ResultMsg."</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bmacro_use%5D%0Aextern+crate+crossbeam_channel;%0Aextern+crate+rayon;%0A%0Ause+crossbeam_channel::unbounded;%0Ause+std::collections::HashMap;%0A//+use+std::sync::%7BArc,+Condvar,+Mutex%7D;%0A%0Ause+parking_lot::%7BCondvar,+Mutex%7D;%0Ause+std::sync::Arc;%0Ause+std::thread;%0A%0Aenum+WorkMsg+%7B%0A++++Work(u8),%0A++++Exit,%0A%7D%0A%0Aenum+ResultMsg+%7B%0A++++Result(u8),%0A++++Exited,%0A%7D%0A%0Astruct+WorkerState+%7B%0A++++ongoing:+i16,%0A++++exiting:+bool,%0A%7D%0A%0Aimpl+WorkerState+%7B%0A++++fn+init()+-%3E+Self+%7B%0A++++++++WorkerState%7B+ongoing:+0,+exiting:+false+%7D%0A++++%7D%0A%0A++++fn+set_ongoing(%26mut+self,+count:+i16)+%7B%0A++++++++self.ongoing+%2B=+count;%0A++++%7D%0A%0A++++fn+set_exiting(%26mut+self,+exit_state:+bool)+%7B%0A++++++++self.exiting+=+exit_state;%0A++++%7D%0A%0A++++fn+is_exiting(%26self)+-%3E+bool+%7B%0A++++++++self.exiting+==+true%0A++++%7D%0A%0A++++fn+is_nomore_work(%26self)-%3E+bool+%7B%0A++++++++self.ongoing+==+0%0A++++%7D%0A%0A%7D%0A%0Afn+main()+%7B%0A++++let+(work_sender,+work_receiver)+=+unbounded();%0A++++let+(result_sender,+result_receiver)+=+unbounded();%0A++++//+%E6%B7%BB%E5%8A%A0%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84Channel%EF%BC%8CWorker%E4%BD%BF%E7%94%A8%E5%AE%83%E6%9D%A5%E9%80%9A%E7%9F%A5%E2%80%9C%E5%B9%B6%E8%A1%8C%E2%80%9D%E7%BB%84%E4%BB%B6%E5%B7%B2%E7%BB%8F%E5%AE%8C%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++let+(pool_result_sender,+pool_result_receiver)+=+unbounded();%0A++++let+mut+worker_state+=+WorkerState::init();%0A%0A++++//+%E4%BD%BF%E7%94%A8%E7%BA%BF%E7%A8%8B%E6%B1%A0%0A++++let+pool+=+rayon::ThreadPoolBuilder::new()%0A++++++++.num_threads(2)%0A++++++++.build()%0A++++++++.unwrap();%0A%0A++++let+_+=+thread::spawn(move+%7C%7C+loop+%7B%0A++++++++//+%E4%BD%BF%E7%94%A8+corssbeam+%E6%8F%90%E4%BE%9B%E7%9A%84+select!+%E5%AE%8F+%E9%80%89%E6%8B%A9%E4%B8%80%E4%B8%AA%E5%B0%B1%E7%BB%AA%E5%B7%A5%E4%BD%9C%0A++++++++select!+%7B%0A++++++++++++recv(work_receiver)+-%3E+msg+=%3E+%7B%0A++++++++++++++++match+msg+%7B%0A++++++++++++++++++++Ok(WorkMsg::Work(num))+=%3E+%7B%0A++++++++++++++++++++++++let+result_sender+=+result_sender.clone();%0A++++++++++++++++++++++++let+pool_result_sender+=+pool_result_sender.clone();%0A%0A++++++++++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%AD%A3%E5%9C%A8%E6%B1%A0%E4%B8%8A%E5%90%AF%E5%8A%A8%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E3%80%82%0A++++++++++++++++++++++++worker_state.set_ongoing(1);%0A%0A++++++++++++++++++++++++pool.spawn(move+%7C%7C+%7B%0A++++++++++++++++++++++++++++//+1.+%E5%8F%91%E9%80%81%E7%BB%93%E6%9E%9C%E7%BB%99%E3%80%8C%E4%B8%BB%E7%BB%84%E4%BB%B6%E3%80%8D%0A++++++++++++++++++++++++++++result_sender.send(ResultMsg::Result(num));%0A%0A++++++++++++++++++++++++++++//+2.+%E8%AE%A9%E5%B9%B6%E8%A1%8C%E7%BB%84%E4%BB%B6%E7%9F%A5%E9%81%93%E8%BF%99%E9%87%8C%E5%AE%8C%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++++++++++++++++++++++++++pool_result_sender.send(());%0A++++++++++++++++++++++++%7D);%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++Ok(WorkMsg::Exit)+=%3E+%7B%0A++++++++++++++++++++++++//+N%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%8E%A5%E6%94%B6%E8%AF%B7%E6%B1%82%E5%B9%B6%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++//+exiting+=+true;%0A++++++++++++++++++++++++worker_state.set_exiting(true);%0A%0A++++++++++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%88%99%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%88%99%E7%AB%8B%E5%8D%B3%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++if+worker_state.is_nomore_work()+%7B%0A++++++++++++++++++++++++++++result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++++++++++break;%0A++++++++++++++++++++++++%7D%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++_+=%3E+panic!(%22Error+receiving+a+WorkMsg.%22),%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++++++recv(pool_result_receiver)+-%3E+_+=%3E+%7B%0A++++++++++++++++if+worker_state.is_nomore_work()+%7B%0A++++++++++++++++++++panic!(%22Received+an+unexpected+pool+result.%22);%0A++++++++++++++++%7D%0A%0A++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E5%B7%B2%E7%BB%8F%E8%A2%AB%E5%AE%8C%E6%88%90%0A++++++++++++++++worker_state.set_ongoing(-1);%0A%0A++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%9C%A8%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%8E%A5%E6%94%B6%E5%88%B0%E4%BA%86%E9%80%80%E5%87%BA%E8%AF%B7%E6%B1%82%EF%BC%8C%E9%82%A3%E4%B9%88%E5%B0%B1%E9%80%80%E5%87%BA%0A++++++++++++++++if+worker_state.is_nomore_work()+%26%26+worker_state.is_exiting()+%7B%0A++++++++++++++++++++result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++break;%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++%7D%0A++++%7D);%0A%0A++++work_sender.send(WorkMsg::Work(0));%0A++++work_sender.send(WorkMsg::Work(1));%0A++++work_sender.send(WorkMsg::Exit);%0A%0A++++let+mut+counter+=+0;%0A%0A++++loop+%7B%0A++++++++match+result_receiver.recv()+%7B%0A++++++++++++Ok(ResultMsg::Result(_))+=%3E+%7B%0A++++++++++++++++//+%E8%AE%A1%E6%95%B0%E5%BD%93%E5%89%8D%E5%AE%8C%E6%88%90%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++++++++++++++counter+%2B=+1;%0A++++++++++++%7D%0A++++++++++++Ok(ResultMsg::Exited)+=%3E+%7B%0A++++++++++++++++//+%E6%96%AD%E8%A8%80%E6%A3%80%E6%B5%8B%EF%BC%9A%E6%98%AF%E5%9C%A8%E6%8E%A5%E6%94%B6%E5%88%B0%E4%B8%A4%E4%B8%AA%E8%AF%B7%E6%B1%82%E4%BB%A5%E5%90%8E%E9%80%80%E5%87%BA%E7%9A%84%0A++++++++++++++++assert_eq!(2,+counter);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+ResultMsg.%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例4: 使用缓存共享数据</p>
+<div class="example-wrap"><pre class="language-text"><code>                                    +--------------+
+                                    | main thread  |      send work msg
+    +-----------------------------&gt; |    主 组 件   |  +--------------------------+
+    |           receive result msg  |              |                             +
+    |                               +--------------+                             work1
+    |                                                                            |
+    |                       send result msg                                      |
+    |              +------------------------+                                    work0
+    |              |                        |                                    +
+    |              v                        |                                    |
+    |        result channel                 |                                    |
+    |            +---+            +---------+------------------------+           |
+    |            |   |            |              thread              |           |
+    |            +---+            |               pool               |           |
+    |            |   |       +----+---+                         +----+----+      |
+    |            +---+       | worker |                         |  worker |      |
+    |            |   |       | thread |                         |  thread |      |
+    |            +---+       |        |                         |         |      |
+    |            |   |       |        |                         |         |      +
+    |            +---+       |        |                         |         |  work channel
+    |            |   |       |        |get +--------------+  get|         |     +---+
+    |            +---+       |        +---&gt;+  work cache  +&lt;----+         |     |   |
+    |            |   |       |        |    +--------------+     |         |     +---+
+    |            +-+-+       |        |                         |         |     |   |
+    |              |         |        |     pool_res_channel    |         |     +---+
+    |              |         |   并    +-------------------------+    并   |     |   |
+    +--------------+         |   行    send msg when job finished     行   |     +---+
+                             |   组    +-------------------------+    组    |    |   |
+                             |   件    |                         |    件    |    +---+
+                             +----+---+                         +-----+---+     |   |
+                                  ^                                   ^         +---+
+                                  |                                   |         |   |
+                                  +receive-work-msg+------------------+         +-+-+
+                                            |                                     |
+                                            |                                     |
+                                            +-------------------------------------+
+
+</code></pre></div>
+<p>代码：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>crossbeam_channel;
+<span class="kw">extern crate </span>rayon;
+
+<span class="kw">use </span>crossbeam_channel::unbounded;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::sync::{Arc, Condvar, Mutex};
+
+<span class="comment">// use parking_lot::{Condvar, Mutex};
+// use std::sync::Arc;
+</span><span class="kw">use </span>std::thread;
+
+<span class="kw">enum </span>WorkMsg {
+    Work(u8),
+    Exit,
+}
+
+<span class="kw">enum </span>ResultMsg {
+    <span class="prelude-ty">Result</span>(u8, WorkPerformed),
+    Exited,
+}
+
+<span class="kw">struct </span>WorkerState {
+    ongoing: i16,
+    exiting: bool,
+}
+
+<span class="kw">impl </span>WorkerState {
+    <span class="kw">fn </span>init() -&gt; <span class="self">Self </span>{
+        WorkerState{ ongoing: <span class="number">0</span>, exiting: <span class="bool-val">false </span>}
+    }
+
+    <span class="kw">fn </span>set_ongoing(<span class="kw-2">&amp;mut </span><span class="self">self</span>, count: i16) {
+        <span class="self">self</span>.ongoing += count;
+    }
+
+    <span class="kw">fn </span>set_exiting(<span class="kw-2">&amp;mut </span><span class="self">self</span>, exit_state: bool) {
+        <span class="self">self</span>.exiting = exit_state;
+    }
+
+    <span class="kw">fn </span>is_exiting(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.exiting == <span class="bool-val">true
+    </span>}
+
+    <span class="kw">fn </span>is_nomore_work(<span class="kw-2">&amp;</span><span class="self">self</span>)-&gt; bool {
+        <span class="self">self</span>.ongoing == <span class="number">0
+    </span>}
+}
+
+<span class="attr">#[derive(Debug, Eq, PartialEq)]
+</span><span class="kw">enum </span>WorkPerformed {
+    FromCache,
+    New,
+}
+
+<span class="attr">#[derive(Eq, Hash, PartialEq)]
+</span><span class="kw">struct </span>CacheKey(u8);
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>(work_sender, work_receiver) = unbounded();
+    <span class="kw">let </span>(result_sender, result_receiver) = unbounded();
+    <span class="comment">// 添加一个新的Channel，Worker使用它来通知“并行”组件已经完成了一个工作单元
+    </span><span class="kw">let </span>(pool_result_sender, pool_result_receiver) = unbounded();
+    <span class="kw">let </span><span class="kw-2">mut </span>worker_state = WorkerState::init();
+
+    <span class="comment">// 使用线程池
+    </span><span class="kw">let </span>pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(<span class="number">2</span>)
+        .build()
+        .unwrap();
+
+    <span class="comment">// 缓存 work ，由 池 中的 worker 共享
+    </span><span class="kw">let </span>cache: Arc&lt;Mutex&lt;HashMap&lt;CacheKey, u8&gt;&gt;&gt; = Arc::new(Mutex::new(HashMap::new()));
+
+    <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| <span class="kw">loop </span>{
+        <span class="comment">// 使用 corssbeam 提供的 select! 宏 选择一个就绪工作
+        </span><span class="macro">select!</span> {
+            recv(work_receiver) -&gt; msg =&gt; {
+                <span class="kw">match </span>msg {
+                    <span class="prelude-val">Ok</span>(WorkMsg::Work(num)) =&gt; {
+                        <span class="kw">let </span>result_sender = result_sender.clone();
+                        <span class="kw">let </span>pool_result_sender = pool_result_sender.clone();
+                        <span class="comment">// 使用缓存
+                        </span><span class="kw">let </span>cache = cache.clone();
+
+                        <span class="comment">// 注意，这里正在池上启动一个新的工作单元。
+                        </span>worker_state.set_ongoing(<span class="number">1</span>);
+
+                        pool.spawn(<span class="kw">move </span>|| {
+                            <span class="kw">let </span>num = {
+                                <span class="comment">// 缓存开始
+                                </span><span class="kw">let </span>cache = cache.lock().unwrap();
+                                <span class="kw">let </span>key = CacheKey(num);
+                                <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = cache.get(<span class="kw-2">&amp;</span>key) {
+                                    <span class="comment">// 从缓存中获得一个结果，并将其发送回去，
+                                    // 同时带有一个标志，表明是从缓存中获得了它
+                                    </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(result.clone(), WorkPerformed::FromCache));
+                                    <span class="kw">let _ </span>= pool_result_sender.send(());
+                                    <span class="kw">return</span>;
+                                }
+                                key.<span class="number">0
+                                </span><span class="comment">// 缓存结束
+                            </span>};
+
+                            <span class="comment">// work work work work work work...
+
+                            // 返回结果，表明我们必须执行work
+                            </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(num.clone(), WorkPerformed::New));
+
+                            <span class="comment">// 在缓存中存储“昂贵”的work.
+                            </span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.lock().unwrap();
+                            <span class="kw">let </span>key = CacheKey(num.clone());
+                            cache.insert(key, num);
+
+                            <span class="kw">let _ </span>= pool_result_sender.send(());
+                        });
+                    },
+                    <span class="prelude-val">Ok</span>(WorkMsg::Exit) =&gt; {
+                        <span class="comment">// N注意，这里接收请求并退出
+                        // exiting = true;
+                        </span>worker_state.set_exiting(<span class="bool-val">true</span>);
+
+                        <span class="comment">// 如果没有正则进行的工作则立即退出
+                        </span><span class="kw">if </span>worker_state.is_nomore_work() {
+                            result_sender.send(ResultMsg::Exited);
+                            <span class="kw">break</span>;
+                        }
+                    },
+                    <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a WorkMsg."</span>),
+                }
+            },
+            recv(pool_result_receiver) -&gt; <span class="kw">_ </span>=&gt; {
+                <span class="kw">if </span>worker_state.is_nomore_work() {
+                    <span class="macro">panic!</span>(<span class="string">"Received an unexpected pool result."</span>);
+                }
+
+                <span class="comment">// 注意，一个工作单元已经被完成
+                </span>worker_state.set_ongoing(-<span class="number">1</span>);
+
+                <span class="comment">// 如果没有正在进行的工作，并且接收到了退出请求，那么就退出
+                </span><span class="kw">if </span>worker_state.is_nomore_work() &amp;&amp; worker_state.is_exiting() {
+                    result_sender.send(ResultMsg::Exited);
+                    <span class="kw">break</span>;
+                }
+            },
+        }
+    });
+
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">0</span>));
+    <span class="comment">// 发送两个相同的work
+    </span><span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Exit);
+
+    <span class="kw">let </span><span class="kw-2">mut </span>counter = <span class="number">0</span>;
+
+    <span class="kw">loop </span>{
+        <span class="kw">match </span>result_receiver.recv() {
+            <span class="prelude-val">Ok</span>(ResultMsg::Result(<span class="kw">_</span>, _cached)) =&gt; {
+                <span class="comment">// 计数当前完成的工作单元
+                </span>counter += <span class="number">1</span>;
+            }
+            <span class="prelude-val">Ok</span>(ResultMsg::Exited) =&gt; {
+                <span class="comment">// 断言检测：是在接收到两个请求以后退出的
+                </span><span class="macro">assert_eq!</span>(<span class="number">3</span>, counter);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a ResultMsg."</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bmacro_use%5D%0Aextern+crate+crossbeam_channel;%0Aextern+crate+rayon;%0A%0Ause+crossbeam_channel::unbounded;%0Ause+std::collections::HashMap;%0Ause+std::sync::%7BArc,+Condvar,+Mutex%7D;%0A%0A//+use+parking_lot::%7BCondvar,+Mutex%7D;%0A//+use+std::sync::Arc;%0Ause+std::thread;%0A%0Aenum+WorkMsg+%7B%0A++++Work(u8),%0A++++Exit,%0A%7D%0A%0Aenum+ResultMsg+%7B%0A++++Result(u8,+WorkPerformed),%0A++++Exited,%0A%7D%0A%0Astruct+WorkerState+%7B%0A++++ongoing:+i16,%0A++++exiting:+bool,%0A%7D%0A%0Aimpl+WorkerState+%7B%0A++++fn+init()+-%3E+Self+%7B%0A++++++++WorkerState%7B+ongoing:+0,+exiting:+false+%7D%0A++++%7D%0A%0A++++fn+set_ongoing(%26mut+self,+count:+i16)+%7B%0A++++++++self.ongoing+%2B=+count;%0A++++%7D%0A%0A++++fn+set_exiting(%26mut+self,+exit_state:+bool)+%7B%0A++++++++self.exiting+=+exit_state;%0A++++%7D%0A%0A++++fn+is_exiting(%26self)+-%3E+bool+%7B%0A++++++++self.exiting+==+true%0A++++%7D%0A%0A++++fn+is_nomore_work(%26self)-%3E+bool+%7B%0A++++++++self.ongoing+==+0%0A++++%7D%0A%7D%0A%0A%23%5Bderive(Debug,+Eq,+PartialEq)%5D%0Aenum+WorkPerformed+%7B%0A++++FromCache,%0A++++New,%0A%7D%0A%0A%23%5Bderive(Eq,+Hash,+PartialEq)%5D%0Astruct+CacheKey(u8);%0A%0Afn+main()+%7B%0A++++let+(work_sender,+work_receiver)+=+unbounded();%0A++++let+(result_sender,+result_receiver)+=+unbounded();%0A++++//+%E6%B7%BB%E5%8A%A0%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84Channel%EF%BC%8CWorker%E4%BD%BF%E7%94%A8%E5%AE%83%E6%9D%A5%E9%80%9A%E7%9F%A5%E2%80%9C%E5%B9%B6%E8%A1%8C%E2%80%9D%E7%BB%84%E4%BB%B6%E5%B7%B2%E7%BB%8F%E5%AE%8C%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++let+(pool_result_sender,+pool_result_receiver)+=+unbounded();%0A++++let+mut+worker_state+=+WorkerState::init();%0A%0A++++//+%E4%BD%BF%E7%94%A8%E7%BA%BF%E7%A8%8B%E6%B1%A0%0A++++let+pool+=+rayon::ThreadPoolBuilder::new()%0A++++++++.num_threads(2)%0A++++++++.build()%0A++++++++.unwrap();%0A%0A++++//+%E7%BC%93%E5%AD%98+work+%EF%BC%8C%E7%94%B1+%E6%B1%A0+%E4%B8%AD%E7%9A%84+worker+%E5%85%B1%E4%BA%AB%0A++++let+cache:+Arc%3CMutex%3CHashMap%3CCacheKey,+u8%3E%3E%3E+=+Arc::new(Mutex::new(HashMap::new()));%0A%0A++++let+_+=+thread::spawn(move+%7C%7C+loop+%7B%0A++++++++//+%E4%BD%BF%E7%94%A8+corssbeam+%E6%8F%90%E4%BE%9B%E7%9A%84+select!+%E5%AE%8F+%E9%80%89%E6%8B%A9%E4%B8%80%E4%B8%AA%E5%B0%B1%E7%BB%AA%E5%B7%A5%E4%BD%9C%0A++++++++select!+%7B%0A++++++++++++recv(work_receiver)+-%3E+msg+=%3E+%7B%0A++++++++++++++++match+msg+%7B%0A++++++++++++++++++++Ok(WorkMsg::Work(num))+=%3E+%7B%0A++++++++++++++++++++++++let+result_sender+=+result_sender.clone();%0A++++++++++++++++++++++++let+pool_result_sender+=+pool_result_sender.clone();%0A++++++++++++++++++++++++//+%E4%BD%BF%E7%94%A8%E7%BC%93%E5%AD%98%0A++++++++++++++++++++++++let+cache+=+cache.clone();%0A%0A++++++++++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%AD%A3%E5%9C%A8%E6%B1%A0%E4%B8%8A%E5%90%AF%E5%8A%A8%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E3%80%82%0A++++++++++++++++++++++++worker_state.set_ongoing(1);%0A%0A++++++++++++++++++++++++pool.spawn(move+%7C%7C+%7B%0A++++++++++++++++++++++++++++let+num+=+%7B%0A++++++++++++++++++++++++++++++++//+%E7%BC%93%E5%AD%98%E5%BC%80%E5%A7%8B%0A++++++++++++++++++++++++++++++++let+cache+=+cache.lock().unwrap();%0A++++++++++++++++++++++++++++++++let+key+=+CacheKey(num);%0A++++++++++++++++++++++++++++++++if+let+Some(result)+=+cache.get(%26key)+%7B%0A++++++++++++++++++++++++++++++++++++//+%E4%BB%8E%E7%BC%93%E5%AD%98%E4%B8%AD%E8%8E%B7%E5%BE%97%E4%B8%80%E4%B8%AA%E7%BB%93%E6%9E%9C%EF%BC%8C%E5%B9%B6%E5%B0%86%E5%85%B6%E5%8F%91%E9%80%81%E5%9B%9E%E5%8E%BB%EF%BC%8C%0A++++++++++++++++++++++++++++++++++++//+%E5%90%8C%E6%97%B6%E5%B8%A6%E6%9C%89%E4%B8%80%E4%B8%AA%E6%A0%87%E5%BF%97%EF%BC%8C%E8%A1%A8%E6%98%8E%E6%98%AF%E4%BB%8E%E7%BC%93%E5%AD%98%E4%B8%AD%E8%8E%B7%E5%BE%97%E4%BA%86%E5%AE%83%0A++++++++++++++++++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(result.clone(),+WorkPerformed::FromCache));%0A++++++++++++++++++++++++++++++++++++let+_+=+pool_result_sender.send(());%0A++++++++++++++++++++++++++++++++++++return;%0A++++++++++++++++++++++++++++++++%7D%0A++++++++++++++++++++++++++++++++key.0%0A++++++++++++++++++++++++++++++++//+%E7%BC%93%E5%AD%98%E7%BB%93%E6%9D%9F%0A++++++++++++++++++++++++++++%7D;%0A%0A++++++++++++++++++++++++++++//+work+work+work+work+work+work...%0A%0A++++++++++++++++++++++++++++//+%E8%BF%94%E5%9B%9E%E7%BB%93%E6%9E%9C%EF%BC%8C%E8%A1%A8%E6%98%8E%E6%88%91%E4%BB%AC%E5%BF%85%E9%A1%BB%E6%89%A7%E8%A1%8Cwork%0A++++++++++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(num.clone(),+WorkPerformed::New));%0A%0A++++++++++++++++++++++++++++//+%E5%9C%A8%E7%BC%93%E5%AD%98%E4%B8%AD%E5%AD%98%E5%82%A8%E2%80%9C%E6%98%82%E8%B4%B5%E2%80%9D%E7%9A%84work.%0A++++++++++++++++++++++++++++let+mut+cache+=+cache.lock().unwrap();%0A++++++++++++++++++++++++++++let+key+=+CacheKey(num.clone());%0A++++++++++++++++++++++++++++cache.insert(key,+num);%0A%0A++++++++++++++++++++++++++++let+_+=+pool_result_sender.send(());%0A++++++++++++++++++++++++%7D);%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++Ok(WorkMsg::Exit)+=%3E+%7B%0A++++++++++++++++++++++++//+N%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%8E%A5%E6%94%B6%E8%AF%B7%E6%B1%82%E5%B9%B6%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++//+exiting+=+true;%0A++++++++++++++++++++++++worker_state.set_exiting(true);%0A%0A++++++++++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%88%99%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%88%99%E7%AB%8B%E5%8D%B3%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++if+worker_state.is_nomore_work()+%7B%0A++++++++++++++++++++++++++++result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++++++++++break;%0A++++++++++++++++++++++++%7D%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++_+=%3E+panic!(%22Error+receiving+a+WorkMsg.%22),%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++++++recv(pool_result_receiver)+-%3E+_+=%3E+%7B%0A++++++++++++++++if+worker_state.is_nomore_work()+%7B%0A++++++++++++++++++++panic!(%22Received+an+unexpected+pool+result.%22);%0A++++++++++++++++%7D%0A%0A++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E5%B7%B2%E7%BB%8F%E8%A2%AB%E5%AE%8C%E6%88%90%0A++++++++++++++++worker_state.set_ongoing(-1);%0A%0A++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%9C%A8%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%8E%A5%E6%94%B6%E5%88%B0%E4%BA%86%E9%80%80%E5%87%BA%E8%AF%B7%E6%B1%82%EF%BC%8C%E9%82%A3%E4%B9%88%E5%B0%B1%E9%80%80%E5%87%BA%0A++++++++++++++++if+worker_state.is_nomore_work()+%26%26+worker_state.is_exiting()+%7B%0A++++++++++++++++++++result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++break;%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++%7D%0A++++%7D);%0A%0A++++let+_+=+work_sender.send(WorkMsg::Work(0));%0A++++//+%E5%8F%91%E9%80%81%E4%B8%A4%E4%B8%AA%E7%9B%B8%E5%90%8C%E7%9A%84work%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Exit);%0A%0A++++let+mut+counter+=+0;%0A%0A++++loop+%7B%0A++++++++match+result_receiver.recv()+%7B%0A++++++++++++Ok(ResultMsg::Result(_,+_cached))+=%3E+%7B%0A++++++++++++++++//+%E8%AE%A1%E6%95%B0%E5%BD%93%E5%89%8D%E5%AE%8C%E6%88%90%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++++++++++++++counter+%2B=+1;%0A++++++++++++%7D%0A++++++++++++Ok(ResultMsg::Exited)+=%3E+%7B%0A++++++++++++++++//+%E6%96%AD%E8%A8%80%E6%A3%80%E6%B5%8B%EF%BC%9A%E6%98%AF%E5%9C%A8%E6%8E%A5%E6%94%B6%E5%88%B0%E4%B8%A4%E4%B8%AA%E8%AF%B7%E6%B1%82%E4%BB%A5%E5%90%8E%E9%80%80%E5%87%BA%E7%9A%84%0A++++++++++++++++assert_eq!(3,+counter);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+ResultMsg.%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>示例5: 确保从缓存中取共享数据的行为是确定的</p>
+<div class="example-wrap"><pre class="language-text"><code>                                    +--------------+
+                                    | main thread  |      send work msg
+    +-----------------------------&gt; |    主 组 件   |  +----------------------------------+
+    |           receive result msg  |              |                                     +
+    |                               +--------------+                                     work1
+    |                                                                                    |
+    |                       send result msg                                              |
+    |              +------------------------+                                            work0
+    |              |                        |                                            +
+    |              v                        |          thread                            |
+    |        result channel                 |           pool                             |
+    |            +---+            |---------+--------------------------------|           |
+    |            |   |       +--------+   wait    +------------+  wait  +---------+      |
+    |            +---+       | worker +&lt;----------+  inproces  +-------&gt;+  worker |      |
+    |            |   |       | thread |       +----            ---+     |  thread |      |
+    |            +---+       |        |  +---&gt;+ work cache state  +&lt;--+ |         |      |
+    |            |   |       |        |  |    +-----+        +----+   | |         |      |
+    |            +---+       |        +--+          |  ready |        +-+         |      |
+    |            |   |       |        |      notify +----+---++  notify |         |      +
+    |            +---+       |        | &lt;-----------+    |    +--------&gt;+         |  work channel
+    |            |   |       |        |                  v              |         |     +---+
+    |            +---+       |        |         +--------+-----+        |         |     |   |
+    |            |   |       |        |         |  work cache  |        |         |     +---+
+    |            +-+-+       |        |         +--------------+        |         |     |   |
+    |              |         |        |     pool_res_channel            |         |     +---+
+    |              |         |   并    +---------------------------------+    并   |     |   |
+    +--------------+         |   行        send msg when job finished         行   |     +---+
+                             |   组    +---------------------------------+    组   |     |   |
+                             |   件    |                                 |    件   |     +---+
+                             +----+---+                                  +-----+---+    |   |
+                                  ^                                           ^         +---+
+                                  |                                           |         |   |
+                                  +receive-work-msg+--------------------------+         +-+-+
+                                            |                                             |
+                                            |                                             |
+                                            +---------------------------------------------+
+</code></pre></div>
+<p>代码：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[macro_use]
+</span><span class="kw">extern crate </span>crossbeam_channel;
+<span class="kw">extern crate </span>rayon;
+
+<span class="kw">use </span>crossbeam_channel::unbounded;
+<span class="kw">use </span>std::collections::HashMap;
+<span class="kw">use </span>std::sync::{Arc, Condvar, Mutex};
+
+<span class="comment">// use parking_lot::{Condvar, Mutex};
+// use std::sync::Arc;
+</span><span class="kw">use </span>std::thread;
+
+<span class="kw">enum </span>WorkMsg {
+    Work(u8),
+    Exit,
+}
+
+<span class="attr">#[derive(Debug, Eq, PartialEq)]
+</span><span class="kw">enum </span>CacheState {
+    Ready,
+    WorkInProgress,
+}
+
+<span class="kw">enum </span>ResultMsg {
+    <span class="prelude-ty">Result</span>(u8, WorkPerformed),
+    Exited,
+}
+
+<span class="kw">struct </span>WorkerState {
+    ongoing: i16,
+    exiting: bool,
+}
+
+<span class="kw">impl </span>WorkerState {
+    <span class="kw">fn </span>init() -&gt; <span class="self">Self </span>{
+        WorkerState{ ongoing: <span class="number">0</span>, exiting: <span class="bool-val">false </span>}
+    }
+
+    <span class="kw">fn </span>set_ongoing(<span class="kw-2">&amp;mut </span><span class="self">self</span>, count: i16) {
+        <span class="self">self</span>.ongoing += count;
+    }
+
+    <span class="kw">fn </span>set_exiting(<span class="kw-2">&amp;mut </span><span class="self">self</span>, exit_state: bool) {
+        <span class="self">self</span>.exiting = exit_state;
+    }
+
+    <span class="kw">fn </span>is_exiting(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.exiting == <span class="bool-val">true
+    </span>}
+
+    <span class="kw">fn </span>is_nomore_work(<span class="kw-2">&amp;</span><span class="self">self</span>)-&gt; bool {
+        <span class="self">self</span>.ongoing == <span class="number">0
+    </span>}
+}
+
+<span class="attr">#[derive(Debug, Eq, PartialEq)]
+</span><span class="kw">enum </span>WorkPerformed {
+    FromCache,
+    New,
+}
+
+<span class="attr">#[derive(Eq, Hash, PartialEq)]
+</span><span class="kw">struct </span>CacheKey(u8);
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>(work_sender, work_receiver) = unbounded();
+    <span class="kw">let </span>(result_sender, result_receiver) = unbounded();
+    <span class="comment">// 添加一个新的Channel，Worker使用它来通知“并行”组件已经完成了一个工作单元
+    </span><span class="kw">let </span>(pool_result_sender, pool_result_receiver) = unbounded();
+    <span class="kw">let </span><span class="kw-2">mut </span>worker_state = WorkerState::init();
+
+    <span class="comment">// 使用线程池
+    </span><span class="kw">let </span>pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(<span class="number">2</span>)
+        .build()
+        .unwrap();
+
+    <span class="comment">// 缓存 work ，由 池 中的 worker 共享
+    </span><span class="kw">let </span>cache: Arc&lt;Mutex&lt;HashMap&lt;CacheKey, u8&gt;&gt;&gt; = Arc::new(Mutex::new(HashMap::new()));
+
+    <span class="comment">// 增加缓存状态，指示对于给定的key，缓存是否已经准备好被读取。
+    </span><span class="kw">let </span>cache_state: Arc&lt;Mutex&lt;HashMap&lt;CacheKey, Arc&lt;(Mutex&lt;CacheState&gt;, Condvar)&gt;&gt;&gt;&gt; =
+        Arc::new(Mutex::new(HashMap::new()));
+
+    <span class="kw">let _ </span>= thread::spawn(<span class="kw">move </span>|| <span class="kw">loop </span>{
+        <span class="comment">// 使用 corssbeam 提供的 select! 宏 选择一个就绪工作
+        </span><span class="macro">select!</span> {
+            recv(work_receiver) -&gt; msg =&gt; {
+                <span class="kw">match </span>msg {
+                    <span class="prelude-val">Ok</span>(WorkMsg::Work(num)) =&gt; {
+                        <span class="kw">let </span>result_sender = result_sender.clone();
+                        <span class="kw">let </span>pool_result_sender = pool_result_sender.clone();
+                        <span class="comment">// 使用缓存
+                        </span><span class="kw">let </span>cache = cache.clone();
+                        <span class="kw">let </span>cache_state = cache_state.clone();
+
+                        <span class="comment">// 注意，这里正在池上启动一个新的工作单元。
+                        </span>worker_state.set_ongoing(<span class="number">1</span>);
+
+                        pool.spawn(<span class="kw">move </span>|| {
+                            <span class="kw">let </span>num = {
+                                <span class="kw">let </span>(cache_state_lock, cvar) = {
+                                    <span class="comment">//  `cache_state` 临界区开始
+                                    </span><span class="kw">let </span><span class="kw-2">mut </span>state_map = cache_state.lock().unwrap();
+                                    <span class="kw-2">&amp;*</span>state_map
+                                        .entry(CacheKey(num.clone()))
+                                        .or_insert_with(|| {
+                                            Arc::new((
+                                                Mutex::new(CacheState::Ready),
+                                                Condvar::new(),
+                                            ))
+                                        })
+                                        .clone()
+                                    <span class="comment">//  `cache_state` 临界区结束
+                                </span>};
+
+                                <span class="comment">//  `state` 临界区开始
+                                </span><span class="kw">let </span><span class="kw-2">mut </span>state = cache_state_lock.lock().unwrap();
+
+                                <span class="comment">// 注意：使用while循环来防止条件变量的虚假唤醒
+                                </span><span class="kw">while let </span>CacheState::WorkInProgress = <span class="kw-2">*</span>state {
+                                    <span class="comment">// 阻塞直到状态是 `CacheState::Ready`.
+                                    //
+                                    // 当唤醒时会自动释放锁
+                                    </span><span class="kw">let </span>current_state = cvar
+                                        .wait(state)
+                                        .unwrap();
+                                    state = current_state;
+                                }
+
+                                <span class="comment">// 循环外可以认为state 已经是 Ready 的了
+                                </span><span class="macro">assert_eq!</span>(<span class="kw-2">*</span>state, CacheState::Ready);
+
+                                <span class="kw">let </span>(num, result) = {
+                                    <span class="comment">// 缓存临界区开始
+                                    </span><span class="kw">let </span>cache = cache.lock().unwrap();
+                                    <span class="kw">let </span>key = CacheKey(num);
+                                    <span class="kw">let </span>result = <span class="kw">match </span>cache.get(<span class="kw-2">&amp;</span>key) {
+                                        <span class="prelude-val">Some</span>(result) =&gt; <span class="prelude-val">Some</span>(result.clone()),
+                                        <span class="prelude-val">None </span>=&gt; <span class="prelude-val">None</span>,
+                                    };
+                                    (key.<span class="number">0</span>, result)
+                                    <span class="comment">// 缓存临界区结束
+                                </span>};
+
+                                <span class="kw">if let </span><span class="prelude-val">Some</span>(result) = result {
+                                    <span class="comment">// 从缓存中获得一个结果，并将其发送回去，
+                                    // 同时带有一个标志，表明是从缓存中获得了它
+                                    </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(result, WorkPerformed::FromCache));
+                                    <span class="kw">let _ </span>= pool_result_sender.send(());
+
+                                    <span class="comment">// 不要忘记通知等待线程
+                                    </span>cvar.notify_one();
+                                    <span class="kw">return</span>;
+                                } <span class="kw">else </span>{
+                                    <span class="comment">// 如果缓存里没有找到结果，那么切换状态
+                                    </span><span class="kw-2">*</span>state = CacheState::WorkInProgress;
+                                    num
+                                }
+                                <span class="comment">// `state` 临界区结束
+                            </span>};
+
+                            <span class="comment">// 在临界区外做更多「昂贵工作」
+
+                            </span><span class="kw">let _ </span>= result_sender.send(ResultMsg::Result(num.clone(), WorkPerformed::New));
+
+                            {
+                                <span class="comment">// 缓存临界区开始
+                                // 插入工作结果到缓存中
+                                </span><span class="kw">let </span><span class="kw-2">mut </span>cache = cache.lock().unwrap();
+                                <span class="kw">let </span>key = CacheKey(num.clone());
+                                cache.insert(key, num);
+                                <span class="comment">// 缓存临界区结束
+                            </span>}
+
+                            <span class="kw">let </span>(lock, cvar) = {
+                                <span class="kw">let </span><span class="kw-2">mut </span>state_map = cache_state.lock().unwrap();
+                                <span class="kw-2">&amp;*</span>state_map
+                                    .get_mut(<span class="kw-2">&amp;</span>CacheKey(num))
+                                    .expect(<span class="string">"Entry in cache state to have been previously inserted"</span>)
+                                    .clone()
+                            };
+                            <span class="comment">// 重新进入 `state` 临界区
+                            </span><span class="kw">let </span><span class="kw-2">mut </span>state = lock.lock().unwrap();
+
+                            <span class="comment">// 在这里，由于已经提前设置了state，并且任何其他worker都将等待状态切换回ready，可以确定该状态是“in-progress”。
+                            </span><span class="macro">assert_eq!</span>(<span class="kw-2">*</span>state, CacheState::WorkInProgress);
+
+                            <span class="comment">// 切换状态为 Ready
+                            </span><span class="kw-2">*</span>state = CacheState::Ready;
+
+                            <span class="comment">// 通知等待线程
+                            </span>cvar.notify_one();
+
+                            <span class="kw">let _ </span>= pool_result_sender.send(());
+                        });
+                    },
+                    <span class="prelude-val">Ok</span>(WorkMsg::Exit) =&gt; {
+                        <span class="comment">// N注意，这里接收请求并退出
+                        // exiting = true;
+                        </span>worker_state.set_exiting(<span class="bool-val">true</span>);
+
+                        <span class="comment">// 如果没有正则进行的工作则立即退出
+                        </span><span class="kw">if </span>worker_state.is_nomore_work() {
+                            result_sender.send(ResultMsg::Exited);
+                            <span class="kw">break</span>;
+                        }
+                    },
+                    <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a WorkMsg."</span>),
+                }
+            },
+            recv(pool_result_receiver) -&gt; <span class="kw">_ </span>=&gt; {
+                <span class="kw">if </span>worker_state.is_nomore_work() {
+                    <span class="macro">panic!</span>(<span class="string">"Received an unexpected pool result."</span>);
+                }
+
+                <span class="comment">// 注意，一个工作单元已经被完成
+                </span>worker_state.set_ongoing(-<span class="number">1</span>);
+
+                <span class="comment">// 如果没有正在进行的工作，并且接收到了退出请求，那么就退出
+                </span><span class="kw">if </span>worker_state.is_nomore_work() &amp;&amp; worker_state.is_exiting() {
+                    result_sender.send(ResultMsg::Exited);
+                    <span class="kw">break</span>;
+                }
+            },
+        }
+    });
+
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">0</span>));
+    <span class="comment">// 发送两个相同的work
+    </span><span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Work(<span class="number">1</span>));
+    <span class="kw">let _ </span>= work_sender.send(WorkMsg::Exit);
+
+    <span class="kw">let </span><span class="kw-2">mut </span>counter = <span class="number">0</span>;
+
+    <span class="comment">// 当work 是 1 的时候重新计数
+    </span><span class="kw">let </span><span class="kw-2">mut </span>work_one_counter = <span class="number">0</span>;
+
+    <span class="kw">loop </span>{
+        <span class="kw">match </span>result_receiver.recv() {
+            <span class="prelude-val">Ok</span>(ResultMsg::Result(num, cached)) =&gt; {
+                counter += <span class="number">1</span>;
+
+                <span class="kw">if </span>num == <span class="number">1 </span>{
+                    work_one_counter += <span class="number">1</span>;
+                }
+
+                <span class="comment">// 现在我们可以断言，当收到 num 为 1 的第二个结果时，它已经来自缓存。
+                </span><span class="kw">if </span>num == <span class="number">1 </span>&amp;&amp; work_one_counter == <span class="number">2 </span>{
+                    <span class="macro">assert_eq!</span>(cached, WorkPerformed::FromCache);
+                }
+            }
+            <span class="prelude-val">Ok</span>(ResultMsg::Exited) =&gt; {
+                <span class="macro">assert_eq!</span>(<span class="number">3</span>, counter);
+                <span class="kw">break</span>;
+            }
+            <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(<span class="string">"Error receiving a ResultMsg."</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23%5Bmacro_use%5D%0Aextern+crate+crossbeam_channel;%0Aextern+crate+rayon;%0A%0Ause+crossbeam_channel::unbounded;%0Ause+std::collections::HashMap;%0Ause+std::sync::%7BArc,+Condvar,+Mutex%7D;%0A%0A//+use+parking_lot::%7BCondvar,+Mutex%7D;%0A//+use+std::sync::Arc;%0Ause+std::thread;%0A%0Aenum+WorkMsg+%7B%0A++++Work(u8),%0A++++Exit,%0A%7D%0A%0A%23%5Bderive(Debug,+Eq,+PartialEq)%5D%0Aenum+CacheState+%7B%0A++++Ready,%0A++++WorkInProgress,%0A%7D%0A%0Aenum+ResultMsg+%7B%0A++++Result(u8,+WorkPerformed),%0A++++Exited,%0A%7D%0A%0Astruct+WorkerState+%7B%0A++++ongoing:+i16,%0A++++exiting:+bool,%0A%7D%0A%0Aimpl+WorkerState+%7B%0A++++fn+init()+-%3E+Self+%7B%0A++++++++WorkerState%7B+ongoing:+0,+exiting:+false+%7D%0A++++%7D%0A%0A++++fn+set_ongoing(%26mut+self,+count:+i16)+%7B%0A++++++++self.ongoing+%2B=+count;%0A++++%7D%0A%0A++++fn+set_exiting(%26mut+self,+exit_state:+bool)+%7B%0A++++++++self.exiting+=+exit_state;%0A++++%7D%0A%0A++++fn+is_exiting(%26self)+-%3E+bool+%7B%0A++++++++self.exiting+==+true%0A++++%7D%0A%0A++++fn+is_nomore_work(%26self)-%3E+bool+%7B%0A++++++++self.ongoing+==+0%0A++++%7D%0A%7D%0A%0A%23%5Bderive(Debug,+Eq,+PartialEq)%5D%0Aenum+WorkPerformed+%7B%0A++++FromCache,%0A++++New,%0A%7D%0A%0A%23%5Bderive(Eq,+Hash,+PartialEq)%5D%0Astruct+CacheKey(u8);%0A%0Afn+main()+%7B%0A++++let+(work_sender,+work_receiver)+=+unbounded();%0A++++let+(result_sender,+result_receiver)+=+unbounded();%0A++++//+%E6%B7%BB%E5%8A%A0%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84Channel%EF%BC%8CWorker%E4%BD%BF%E7%94%A8%E5%AE%83%E6%9D%A5%E9%80%9A%E7%9F%A5%E2%80%9C%E5%B9%B6%E8%A1%8C%E2%80%9D%E7%BB%84%E4%BB%B6%E5%B7%B2%E7%BB%8F%E5%AE%8C%E6%88%90%E4%BA%86%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%0A++++let+(pool_result_sender,+pool_result_receiver)+=+unbounded();%0A++++let+mut+worker_state+=+WorkerState::init();%0A%0A++++//+%E4%BD%BF%E7%94%A8%E7%BA%BF%E7%A8%8B%E6%B1%A0%0A++++let+pool+=+rayon::ThreadPoolBuilder::new()%0A++++++++.num_threads(2)%0A++++++++.build()%0A++++++++.unwrap();%0A%0A++++//+%E7%BC%93%E5%AD%98+work+%EF%BC%8C%E7%94%B1+%E6%B1%A0+%E4%B8%AD%E7%9A%84+worker+%E5%85%B1%E4%BA%AB%0A++++let+cache:+Arc%3CMutex%3CHashMap%3CCacheKey,+u8%3E%3E%3E+=+Arc::new(Mutex::new(HashMap::new()));%0A%0A++++//+%E5%A2%9E%E5%8A%A0%E7%BC%93%E5%AD%98%E7%8A%B6%E6%80%81%EF%BC%8C%E6%8C%87%E7%A4%BA%E5%AF%B9%E4%BA%8E%E7%BB%99%E5%AE%9A%E7%9A%84key%EF%BC%8C%E7%BC%93%E5%AD%98%E6%98%AF%E5%90%A6%E5%B7%B2%E7%BB%8F%E5%87%86%E5%A4%87%E5%A5%BD%E8%A2%AB%E8%AF%BB%E5%8F%96%E3%80%82%0A++++let+cache_state:+Arc%3CMutex%3CHashMap%3CCacheKey,+Arc%3C(Mutex%3CCacheState%3E,+Condvar)%3E%3E%3E%3E+=%0A++++++++Arc::new(Mutex::new(HashMap::new()));%0A%0A++++let+_+=+thread::spawn(move+%7C%7C+loop+%7B%0A++++++++//+%E4%BD%BF%E7%94%A8+corssbeam+%E6%8F%90%E4%BE%9B%E7%9A%84+select!+%E5%AE%8F+%E9%80%89%E6%8B%A9%E4%B8%80%E4%B8%AA%E5%B0%B1%E7%BB%AA%E5%B7%A5%E4%BD%9C%0A++++++++select!+%7B%0A++++++++++++recv(work_receiver)+-%3E+msg+=%3E+%7B%0A++++++++++++++++match+msg+%7B%0A++++++++++++++++++++Ok(WorkMsg::Work(num))+=%3E+%7B%0A++++++++++++++++++++++++let+result_sender+=+result_sender.clone();%0A++++++++++++++++++++++++let+pool_result_sender+=+pool_result_sender.clone();%0A++++++++++++++++++++++++//+%E4%BD%BF%E7%94%A8%E7%BC%93%E5%AD%98%0A++++++++++++++++++++++++let+cache+=+cache.clone();%0A++++++++++++++++++++++++let+cache_state+=+cache_state.clone();%0A%0A++++++++++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%AD%A3%E5%9C%A8%E6%B1%A0%E4%B8%8A%E5%90%AF%E5%8A%A8%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E3%80%82%0A++++++++++++++++++++++++worker_state.set_ongoing(1);%0A%0A++++++++++++++++++++++++pool.spawn(move+%7C%7C+%7B%0A++++++++++++++++++++++++++++let+num+=+%7B%0A++++++++++++++++++++++++++++++++let+(cache_state_lock,+cvar)+=+%7B%0A++++++++++++++++++++++++++++++++++++//++%60cache_state%60+%E4%B8%B4%E7%95%8C%E5%8C%BA%E5%BC%80%E5%A7%8B%0A++++++++++++++++++++++++++++++++++++let+mut+state_map+=+cache_state.lock().unwrap();%0A++++++++++++++++++++++++++++++++++++%26*state_map%0A++++++++++++++++++++++++++++++++++++++++.entry(CacheKey(num.clone()))%0A++++++++++++++++++++++++++++++++++++++++.or_insert_with(%7C%7C+%7B%0A++++++++++++++++++++++++++++++++++++++++++++Arc::new((%0A++++++++++++++++++++++++++++++++++++++++++++++++Mutex::new(CacheState::Ready),%0A++++++++++++++++++++++++++++++++++++++++++++++++Condvar::new(),%0A++++++++++++++++++++++++++++++++++++++++++++))%0A++++++++++++++++++++++++++++++++++++++++%7D)%0A++++++++++++++++++++++++++++++++++++++++.clone()%0A++++++++++++++++++++++++++++++++++++//++%60cache_state%60+%E4%B8%B4%E7%95%8C%E5%8C%BA%E7%BB%93%E6%9D%9F%0A++++++++++++++++++++++++++++++++%7D;%0A%0A++++++++++++++++++++++++++++++++//++%60state%60+%E4%B8%B4%E7%95%8C%E5%8C%BA%E5%BC%80%E5%A7%8B%0A++++++++++++++++++++++++++++++++let+mut+state+=+cache_state_lock.lock().unwrap();%0A%0A++++++++++++++++++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%9A%E4%BD%BF%E7%94%A8while%E5%BE%AA%E7%8E%AF%E6%9D%A5%E9%98%B2%E6%AD%A2%E6%9D%A1%E4%BB%B6%E5%8F%98%E9%87%8F%E7%9A%84%E8%99%9A%E5%81%87%E5%94%A4%E9%86%92%0A++++++++++++++++++++++++++++++++while+let+CacheState::WorkInProgress+=+*state+%7B%0A++++++++++++++++++++++++++++++++++++//+%E9%98%BB%E5%A1%9E%E7%9B%B4%E5%88%B0%E7%8A%B6%E6%80%81%E6%98%AF+%60CacheState::Ready%60.%0A++++++++++++++++++++++++++++++++++++//%0A++++++++++++++++++++++++++++++++++++//+%E5%BD%93%E5%94%A4%E9%86%92%E6%97%B6%E4%BC%9A%E8%87%AA%E5%8A%A8%E9%87%8A%E6%94%BE%E9%94%81%0A++++++++++++++++++++++++++++++++++++let+current_state+=+cvar%0A++++++++++++++++++++++++++++++++++++++++.wait(state)%0A++++++++++++++++++++++++++++++++++++++++.unwrap();%0A++++++++++++++++++++++++++++++++++++state+=+current_state;%0A++++++++++++++++++++++++++++++++%7D%0A%0A++++++++++++++++++++++++++++++++//+%E5%BE%AA%E7%8E%AF%E5%A4%96%E5%8F%AF%E4%BB%A5%E8%AE%A4%E4%B8%BAstate+%E5%B7%B2%E7%BB%8F%E6%98%AF+Ready+%E7%9A%84%E4%BA%86%0A++++++++++++++++++++++++++++++++assert_eq!(*state,+CacheState::Ready);%0A%0A++++++++++++++++++++++++++++++++let+(num,+result)+=+%7B%0A++++++++++++++++++++++++++++++++++++//+%E7%BC%93%E5%AD%98%E4%B8%B4%E7%95%8C%E5%8C%BA%E5%BC%80%E5%A7%8B%0A++++++++++++++++++++++++++++++++++++let+cache+=+cache.lock().unwrap();%0A++++++++++++++++++++++++++++++++++++let+key+=+CacheKey(num);%0A++++++++++++++++++++++++++++++++++++let+result+=+match+cache.get(%26key)+%7B%0A++++++++++++++++++++++++++++++++++++++++Some(result)+=%3E+Some(result.clone()),%0A++++++++++++++++++++++++++++++++++++++++None+=%3E+None,%0A++++++++++++++++++++++++++++++++++++%7D;%0A++++++++++++++++++++++++++++++++++++(key.0,+result)%0A++++++++++++++++++++++++++++++++++++//+%E7%BC%93%E5%AD%98%E4%B8%B4%E7%95%8C%E5%8C%BA%E7%BB%93%E6%9D%9F%0A++++++++++++++++++++++++++++++++%7D;%0A%0A++++++++++++++++++++++++++++++++if+let+Some(result)+=+result+%7B%0A++++++++++++++++++++++++++++++++++++//+%E4%BB%8E%E7%BC%93%E5%AD%98%E4%B8%AD%E8%8E%B7%E5%BE%97%E4%B8%80%E4%B8%AA%E7%BB%93%E6%9E%9C%EF%BC%8C%E5%B9%B6%E5%B0%86%E5%85%B6%E5%8F%91%E9%80%81%E5%9B%9E%E5%8E%BB%EF%BC%8C%0A++++++++++++++++++++++++++++++++++++//+%E5%90%8C%E6%97%B6%E5%B8%A6%E6%9C%89%E4%B8%80%E4%B8%AA%E6%A0%87%E5%BF%97%EF%BC%8C%E8%A1%A8%E6%98%8E%E6%98%AF%E4%BB%8E%E7%BC%93%E5%AD%98%E4%B8%AD%E8%8E%B7%E5%BE%97%E4%BA%86%E5%AE%83%0A++++++++++++++++++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(result,+WorkPerformed::FromCache));%0A++++++++++++++++++++++++++++++++++++let+_+=+pool_result_sender.send(());%0A%0A++++++++++++++++++++++++++++++++++++//+%E4%B8%8D%E8%A6%81%E5%BF%98%E8%AE%B0%E9%80%9A%E7%9F%A5%E7%AD%89%E5%BE%85%E7%BA%BF%E7%A8%8B%0A++++++++++++++++++++++++++++++++++++cvar.notify_one();%0A++++++++++++++++++++++++++++++++++++return;%0A++++++++++++++++++++++++++++++++%7D+else+%7B%0A++++++++++++++++++++++++++++++++++++//+%E5%A6%82%E6%9E%9C%E7%BC%93%E5%AD%98%E9%87%8C%E6%B2%A1%E6%9C%89%E6%89%BE%E5%88%B0%E7%BB%93%E6%9E%9C%EF%BC%8C%E9%82%A3%E4%B9%88%E5%88%87%E6%8D%A2%E7%8A%B6%E6%80%81%0A++++++++++++++++++++++++++++++++++++*state+=+CacheState::WorkInProgress;%0A++++++++++++++++++++++++++++++++++++num%0A++++++++++++++++++++++++++++++++%7D%0A++++++++++++++++++++++++++++++++//+%60state%60+%E4%B8%B4%E7%95%8C%E5%8C%BA%E7%BB%93%E6%9D%9F%0A++++++++++++++++++++++++++++%7D;%0A%0A++++++++++++++++++++++++++++//+%E5%9C%A8%E4%B8%B4%E7%95%8C%E5%8C%BA%E5%A4%96%E5%81%9A%E6%9B%B4%E5%A4%9A%E3%80%8C%E6%98%82%E8%B4%B5%E5%B7%A5%E4%BD%9C%E3%80%8D%0A%0A++++++++++++++++++++++++++++let+_+=+result_sender.send(ResultMsg::Result(num.clone(),+WorkPerformed::New));%0A%0A++++++++++++++++++++++++++++%7B%0A++++++++++++++++++++++++++++++++//+%E7%BC%93%E5%AD%98%E4%B8%B4%E7%95%8C%E5%8C%BA%E5%BC%80%E5%A7%8B%0A++++++++++++++++++++++++++++++++//+%E6%8F%92%E5%85%A5%E5%B7%A5%E4%BD%9C%E7%BB%93%E6%9E%9C%E5%88%B0%E7%BC%93%E5%AD%98%E4%B8%AD%0A++++++++++++++++++++++++++++++++let+mut+cache+=+cache.lock().unwrap();%0A++++++++++++++++++++++++++++++++let+key+=+CacheKey(num.clone());%0A++++++++++++++++++++++++++++++++cache.insert(key,+num);%0A++++++++++++++++++++++++++++++++//+%E7%BC%93%E5%AD%98%E4%B8%B4%E7%95%8C%E5%8C%BA%E7%BB%93%E6%9D%9F%0A++++++++++++++++++++++++++++%7D%0A%0A++++++++++++++++++++++++++++let+(lock,+cvar)+=+%7B%0A++++++++++++++++++++++++++++++++let+mut+state_map+=+cache_state.lock().unwrap();%0A++++++++++++++++++++++++++++++++%26*state_map%0A++++++++++++++++++++++++++++++++++++.get_mut(%26CacheKey(num))%0A++++++++++++++++++++++++++++++++++++.expect(%22Entry+in+cache+state+to+have+been+previously+inserted%22)%0A++++++++++++++++++++++++++++++++++++.clone()%0A++++++++++++++++++++++++++++%7D;%0A++++++++++++++++++++++++++++//+%E9%87%8D%E6%96%B0%E8%BF%9B%E5%85%A5+%60state%60+%E4%B8%B4%E7%95%8C%E5%8C%BA%0A++++++++++++++++++++++++++++let+mut+state+=+lock.lock().unwrap();%0A%0A++++++++++++++++++++++++++++//+%E5%9C%A8%E8%BF%99%E9%87%8C%EF%BC%8C%E7%94%B1%E4%BA%8E%E5%B7%B2%E7%BB%8F%E6%8F%90%E5%89%8D%E8%AE%BE%E7%BD%AE%E4%BA%86state%EF%BC%8C%E5%B9%B6%E4%B8%94%E4%BB%BB%E4%BD%95%E5%85%B6%E4%BB%96worker%E9%83%BD%E5%B0%86%E7%AD%89%E5%BE%85%E7%8A%B6%E6%80%81%E5%88%87%E6%8D%A2%E5%9B%9Eready%EF%BC%8C%E5%8F%AF%E4%BB%A5%E7%A1%AE%E5%AE%9A%E8%AF%A5%E7%8A%B6%E6%80%81%E6%98%AF%E2%80%9Cin-progress%E2%80%9D%E3%80%82%0A++++++++++++++++++++++++++++assert_eq!(*state,+CacheState::WorkInProgress);%0A%0A++++++++++++++++++++++++++++//+%E5%88%87%E6%8D%A2%E7%8A%B6%E6%80%81%E4%B8%BA+Ready%0A++++++++++++++++++++++++++++*state+=+CacheState::Ready;%0A%0A++++++++++++++++++++++++++++//+%E9%80%9A%E7%9F%A5%E7%AD%89%E5%BE%85%E7%BA%BF%E7%A8%8B%0A++++++++++++++++++++++++++++cvar.notify_one();%0A%0A++++++++++++++++++++++++++++let+_+=+pool_result_sender.send(());%0A++++++++++++++++++++++++%7D);%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++Ok(WorkMsg::Exit)+=%3E+%7B%0A++++++++++++++++++++++++//+N%E6%B3%A8%E6%84%8F%EF%BC%8C%E8%BF%99%E9%87%8C%E6%8E%A5%E6%94%B6%E8%AF%B7%E6%B1%82%E5%B9%B6%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++//+exiting+=+true;%0A++++++++++++++++++++++++worker_state.set_exiting(true);%0A%0A++++++++++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%88%99%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%88%99%E7%AB%8B%E5%8D%B3%E9%80%80%E5%87%BA%0A++++++++++++++++++++++++if+worker_state.is_nomore_work()+%7B%0A++++++++++++++++++++++++++++result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++++++++++break;%0A++++++++++++++++++++++++%7D%0A++++++++++++++++++++%7D,%0A++++++++++++++++++++_+=%3E+panic!(%22Error+receiving+a+WorkMsg.%22),%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++++++recv(pool_result_receiver)+-%3E+_+=%3E+%7B%0A++++++++++++++++if+worker_state.is_nomore_work()+%7B%0A++++++++++++++++++++panic!(%22Received+an+unexpected+pool+result.%22);%0A++++++++++++++++%7D%0A%0A++++++++++++++++//+%E6%B3%A8%E6%84%8F%EF%BC%8C%E4%B8%80%E4%B8%AA%E5%B7%A5%E4%BD%9C%E5%8D%95%E5%85%83%E5%B7%B2%E7%BB%8F%E8%A2%AB%E5%AE%8C%E6%88%90%0A++++++++++++++++worker_state.set_ongoing(-1);%0A%0A++++++++++++++++//+%E5%A6%82%E6%9E%9C%E6%B2%A1%E6%9C%89%E6%AD%A3%E5%9C%A8%E8%BF%9B%E8%A1%8C%E7%9A%84%E5%B7%A5%E4%BD%9C%EF%BC%8C%E5%B9%B6%E4%B8%94%E6%8E%A5%E6%94%B6%E5%88%B0%E4%BA%86%E9%80%80%E5%87%BA%E8%AF%B7%E6%B1%82%EF%BC%8C%E9%82%A3%E4%B9%88%E5%B0%B1%E9%80%80%E5%87%BA%0A++++++++++++++++if+worker_state.is_nomore_work()+%26%26+worker_state.is_exiting()+%7B%0A++++++++++++++++++++result_sender.send(ResultMsg::Exited);%0A++++++++++++++++++++break;%0A++++++++++++++++%7D%0A++++++++++++%7D,%0A++++++++%7D%0A++++%7D);%0A%0A++++let+_+=+work_sender.send(WorkMsg::Work(0));%0A++++//+%E5%8F%91%E9%80%81%E4%B8%A4%E4%B8%AA%E7%9B%B8%E5%90%8C%E7%9A%84work%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Work(1));%0A++++let+_+=+work_sender.send(WorkMsg::Exit);%0A%0A++++let+mut+counter+=+0;%0A%0A++++//+%E5%BD%93work+%E6%98%AF+1+%E7%9A%84%E6%97%B6%E5%80%99%E9%87%8D%E6%96%B0%E8%AE%A1%E6%95%B0%0A++++let+mut+work_one_counter+=+0;%0A%0A++++loop+%7B%0A++++++++match+result_receiver.recv()+%7B%0A++++++++++++Ok(ResultMsg::Result(num,+cached))+=%3E+%7B%0A++++++++++++++++counter+%2B=+1;%0A%0A++++++++++++++++if+num+==+1+%7B%0A++++++++++++++++++++work_one_counter+%2B=+1;%0A++++++++++++++++%7D%0A%0A++++++++++++++++//+%E7%8E%B0%E5%9C%A8%E6%88%91%E4%BB%AC%E5%8F%AF%E4%BB%A5%E6%96%AD%E8%A8%80%EF%BC%8C%E5%BD%93%E6%94%B6%E5%88%B0+num+%E4%B8%BA+1+%E7%9A%84%E7%AC%AC%E4%BA%8C%E4%B8%AA%E7%BB%93%E6%9E%9C%E6%97%B6%EF%BC%8C%E5%AE%83%E5%B7%B2%E7%BB%8F%E6%9D%A5%E8%87%AA%E7%BC%93%E5%AD%98%E3%80%82%0A++++++++++++++++if+num+==+1+%26%26+work_one_counter+==+2+%7B%0A++++++++++++++++++++assert_eq!(cached,+WorkPerformed::FromCache);%0A++++++++++++++++%7D%0A++++++++++++%7D%0A++++++++++++Ok(ResultMsg::Exited)+=%3E+%7B%0A++++++++++++++++assert_eq!(3,+counter);%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++_+=%3E+panic!(%22Error+receiving+a+ResultMsg.%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

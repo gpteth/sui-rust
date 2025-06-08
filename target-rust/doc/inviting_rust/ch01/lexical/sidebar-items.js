@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["ident_show","macro_show","path_show"],"mod":["outer_module"]};

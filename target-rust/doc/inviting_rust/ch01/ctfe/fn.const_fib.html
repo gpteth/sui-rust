@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="const fn : fib"><title>const_fib in inviting_rust::ch01::ctfe - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">const_<wbr>fib</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#const-fn--fib" title="const fn : fib">const fn : fib</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch01::<wbr>ctfe</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch01</a>::<wbr><a href="index.html">ctfe</a></div><h1>Function <span class="fn">const_fib</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch01/ctfe.rs.html#80-82">Source</a> </span></div><pre class="rust item-decl"><code>pub fn const_fib()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="const-fn--fib"><a class="doc-anchor" href="#const-fn--fib">§</a>const fn : fib</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">const fn </span>gcd(a: u32, b: u32) -&gt; u32 {
+    <span class="kw">match </span>(a, b) {
+        (x, <span class="number">0</span>) | (<span class="number">0</span>, x) =&gt; x,
+
+        (x, y) <span class="kw">if </span>x % <span class="number">2 </span>== <span class="number">0 </span>&amp;&amp; y % <span class="number">2 </span>== <span class="number">0 </span>=&gt; <span class="number">2</span><span class="kw-2">*</span>gcd(x/<span class="number">2</span>, y/<span class="number">2</span>),
+        (x, y) | (y, x) <span class="kw">if </span>x % <span class="number">2 </span>== <span class="number">0 </span>=&gt; gcd(x/<span class="number">2</span>, y),
+
+        (x, y) <span class="kw">if </span>x &lt; y =&gt; gcd((y-x)/<span class="number">2</span>, x),
+        (x, y) =&gt; gcd((x-y)/<span class="number">2</span>, y),
+    }
+}
+
+
+<span class="kw">const fn </span>fib(n: u128) -&gt; u128 {
+    <span class="kw">const fn </span>helper(n: u128, a: u128, b: u128, i: u128) -&gt; u128 {
+        <span class="kw">if </span>i &lt;= n {
+            helper(n, b, a + b, i + <span class="number">1</span>)
+        } <span class="kw">else </span>{
+            b
+        }
+    }
+    helper(n, <span class="number">1</span>, <span class="number">1</span>, <span class="number">2</span>)
+}
+
+<span class="kw">const </span>X: u128 = fib(<span class="number">10</span>);
+<span class="kw">const </span>GCD: u32 = gcd(<span class="number">21</span>, <span class="number">7</span>);
+
+<span class="kw">fn </span>main(){
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, X);
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, GCD);
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Aconst+fn+gcd(a:+u32,+b:+u32)+-%3E+u32+%7B%0A++++match+(a,+b)+%7B%0A++++++++(x,+0)+%7C+(0,+x)+=%3E+x,%0A%0A++++++++(x,+y)+if+x+%25+2+==+0+%26%26+y+%25+2+==+0+=%3E+2*gcd(x/2,+y/2),%0A++++++++(x,+y)+%7C+(y,+x)+if+x+%25+2+==+0+=%3E+gcd(x/2,+y),%0A%0A++++++++(x,+y)+if+x+%3C+y+=%3E+gcd((y-x)/2,+x),%0A++++++++(x,+y)+=%3E+gcd((x-y)/2,+y),%0A++++%7D%0A%7D%0A%0A%0Aconst+fn+fib(n:+u128)+-%3E+u128+%7B%0A++++const+fn+helper(n:+u128,+a:+u128,+b:+u128,+i:+u128)+-%3E+u128+%7B%0A++++++++if+i+%3C=+n+%7B%0A++++++++++++helper(n,+b,+a+%2B+b,+i+%2B+1)%0A++++++++%7D+else+%7B%0A++++++++++++b%0A++++++++%7D%0A++++%7D%0A++++helper(n,+1,+1,+2)%0A%7D%0A%0Aconst+X:+u128+=+fib(10);%0Aconst+GCD:+u32+=+gcd(21,+7);%0A%0Afn+main()%7B%0A++++println!(%22%7B%7D%22,+X);%0A++++println!(%22%7B%7D%22,+GCD);%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

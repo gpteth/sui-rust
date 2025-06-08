@@ -1,0 +1,135 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="当不能实现 trait 对象当时候该如何？"><title>trait_object_to_enum in inviting_rust::ch02::s5_trait_and_generic - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">trait_<wbr>object_<wbr>to_<wbr>enum</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#当不能实现-trait-对象当时候该如何" title="当不能实现 trait 对象当时候该如何？">当不能实现 trait 对象当时候该如何？</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s5_<wbr>trait_<wbr>and_<wbr>generic</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s5_trait_and_generic</a></div><h1>Function <span class="fn">trait_object_to_enum</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s5_trait_and_generic.rs.html#624-626">Source</a> </span></div><pre class="rust item-decl"><code>pub fn trait_object_to_enum()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="当不能实现-trait-对象当时候该如何"><a class="doc-anchor" href="#当不能实现-trait-对象当时候该如何">§</a>当不能实现 trait 对象当时候该如何？</h2>
+<ol>
+<li>将其转化为 Enum</li>
+</ol>
+<p>trait 对象代码：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">trait </span>KnobControl {
+        <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: f64);
+        <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64;
+    }
+
+    <span class="kw">struct </span>LinearKnob {
+        position: f64,
+    }
+
+    <span class="kw">struct </span>LogarithmicKnob {
+        position: f64,
+    }
+
+    <span class="kw">impl </span>KnobControl <span class="kw">for </span>LinearKnob {
+        <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: f64) {
+            <span class="self">self</span>.position = value;
+        }
+
+        <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
+            <span class="self">self</span>.position
+        }
+    }
+
+    <span class="kw">impl </span>KnobControl <span class="kw">for </span>LogarithmicKnob {
+        <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: f64) {
+            <span class="self">self</span>.position = value;
+        }
+
+        <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
+            (<span class="self">self</span>.position + <span class="number">1.</span>).log2()
+        }
+    }
+
+    <span class="kw">fn </span>main() {
+        <span class="kw">let </span>v: Vec&lt;Box&lt;<span class="kw">dyn </span>KnobControl&gt;&gt; = <span class="macro">vec!</span>[
+            <span class="comment">//set the knobs
+        </span>];
+
+        <span class="comment">//use the knobs
+    </span>}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Atrait+KnobControl+%7B%0A++++++++fn+set_position(%26mut+self,+value:+f64);%0A++++++++fn+get_value(%26self)+-%3E+f64;%0A++++%7D%0A%0A++++struct+LinearKnob+%7B%0A++++++++position:+f64,%0A++++%7D%0A%0A++++struct+LogarithmicKnob+%7B%0A++++++++position:+f64,%0A++++%7D%0A%0A++++impl+KnobControl+for+LinearKnob+%7B%0A++++++++fn+set_position(%26mut+self,+value:+f64)+%7B%0A++++++++++++self.position+=+value;%0A++++++++%7D%0A%0A++++++++fn+get_value(%26self)+-%3E+f64+%7B%0A++++++++++++self.position%0A++++++++%7D%0A++++%7D%0A%0A++++impl+KnobControl+for+LogarithmicKnob+%7B%0A++++++++fn+set_position(%26mut+self,+value:+f64)+%7B%0A++++++++++++self.position+=+value;%0A++++++++%7D%0A%0A++++++++fn+get_value(%26self)+-%3E+f64+%7B%0A++++++++++++(self.position+%2B+1.).log2()%0A++++++++%7D%0A++++%7D%0A%0A++++fn+main()+%7B%0A++++++++let+v:+Vec%3CBox%3Cdyn+KnobControl%3E%3E+=+vec!%5B%0A++++++++++++//set+the+knobs%0A++++++++%5D;%0A%0A++++++++//use+the+knobs%0A++++%7D&amp;edition=2018"></a></div>
+<p>转为 enum：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">enum </span>Knob {
+        Linear(LinearKnob),
+        Logarithmic(LogarithmicKnob),
+    }
+
+    <span class="kw">impl </span>KnobControl <span class="kw">for </span>Knob {
+        <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: f64) {
+            <span class="kw">match </span><span class="self">self </span>{
+                Knob::Linear(inner_knob) =&gt; inner_knob.set_position(value),
+                Knob::Logarithmic(inner_knob) =&gt; inner_knob.set_position(value),
+            }
+        }
+
+        <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f64 {
+            <span class="kw">match </span><span class="self">self </span>{
+                Knob::Linear(inner_knob) =&gt; inner_knob.get_value(),
+                Knob::Logarithmic(inner_knob) =&gt; inner_knob.get_value(),
+            }
+        }
+    }</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++enum+Knob+%7B%0A++++++++++++Linear(LinearKnob),%0A++++++++++++Logarithmic(LogarithmicKnob),%0A++++++++%7D%0A++++%0A++++++++impl+KnobControl+for+Knob+%7B%0A++++++++++++fn+set_position(%26mut+self,+value:+f64)+%7B%0A++++++++++++++++match+self+%7B%0A++++++++++++++++++++Knob::Linear(inner_knob)+=%3E+inner_knob.set_position(value),%0A++++++++++++++++++++Knob::Logarithmic(inner_knob)+=%3E+inner_knob.set_position(value),%0A++++++++++++++++%7D%0A++++++++++++%7D%0A++++%0A++++++++++++fn+get_value(%26self)+-%3E+f64+%7B%0A++++++++++++++++match+self+%7B%0A++++++++++++++++++++Knob::Linear(inner_knob)+=%3E+inner_knob.get_value(),%0A++++++++++++++++++++Knob::Logarithmic(inner_knob)+=%3E+inner_knob.get_value(),%0A++++++++++++++++%7D%0A++++++++++++%7D%0A++++++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>当 trait 不满足对象安全规则的时候，也可以用 Enum 代替。</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+
+</span><span class="kw">use </span>core::ops::Add;
+
+<span class="kw">trait </span>KnobControl&lt;T: Add + Add&lt;Output = T&gt; + Copy&gt; {
+    <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: T);
+    <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>, p: T) -&gt; T;
+}
+
+<span class="kw">struct </span>LinearKnob&lt;T: Add+ Add&lt;Output = T&gt; + Copy&gt; {
+    position: T,
+}
+
+<span class="kw">struct </span>LogarithmicKnob&lt;T: Add+ Add&lt;Output = T&gt; + Copy&gt;  {
+    position: T,
+}
+
+<span class="kw">impl</span>&lt;T: Add+ Add&lt;Output = T&gt; + Copy&gt; KnobControl&lt;T&gt; <span class="kw">for </span>LinearKnob&lt;T&gt; {
+    <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: T) {
+        <span class="self">self</span>.position = value;
+    }
+
+    <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>, p: T) -&gt; T {
+        <span class="self">self</span>.position + p
+    }
+}
+
+<span class="kw">impl</span>&lt;T: Add+ Add&lt;Output = T&gt; + Copy&gt; KnobControl&lt;T&gt; <span class="kw">for </span>LogarithmicKnob&lt;T&gt; {
+    <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: T) {
+        <span class="self">self</span>.position = value;
+    }
+
+    <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>, p: T) -&gt; T {
+        (<span class="self">self</span>.position + p)
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">enum </span>Knob&lt;T: Add+ Add&lt;Output = T&gt; + Copy&gt; {
+        Linear(LinearKnob&lt;T&gt;),
+        Logarithmic(LogarithmicKnob&lt;T&gt;),
+    }
+
+    <span class="kw">impl</span>&lt;T: Add+ Add&lt;Output = T&gt; + Copy&gt; KnobControl&lt;T&gt; <span class="kw">for </span>Knob&lt;T&gt; {
+        <span class="kw">fn </span>set_position(<span class="kw-2">&amp;mut </span><span class="self">self</span>, value: T) {
+            <span class="kw">match </span><span class="self">self </span>{
+                Knob::Linear(inner_knob) =&gt; inner_knob.set_position(value),
+                Knob::Logarithmic(inner_knob) =&gt; inner_knob.set_position(value),
+            }
+        }
+
+        <span class="kw">fn </span>get_value(<span class="kw-2">&amp;</span><span class="self">self</span>, p: T) -&gt; T {
+            <span class="kw">match </span><span class="self">self </span>{
+                Knob::Linear(inner_knob) =&gt; inner_knob.get_value(p),
+                Knob::Logarithmic(inner_knob) =&gt; inner_knob.get_value(p),
+            }
+        }
+    }
+}
+
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A%23!%5Ballow(unused)%5D%0Ause+core::ops::Add;%0A%0Atrait+KnobControl%3CT:+Add+%2B+Add%3COutput+=+T%3E+%2B+Copy%3E+%7B%0A++++fn+set_position(%26mut+self,+value:+T);%0A++++fn+get_value(%26self,+p:+T)+-%3E+T;%0A%7D%0A%0Astruct+LinearKnob%3CT:+Add%2B+Add%3COutput+=+T%3E+%2B+Copy%3E+%7B%0A++++position:+T,%0A%7D%0A%0Astruct+LogarithmicKnob%3CT:+Add%2B+Add%3COutput+=+T%3E+%2B+Copy%3E++%7B%0A++++position:+T,%0A%7D%0A%0Aimpl%3CT:+Add%2B+Add%3COutput+=+T%3E+%2B+Copy%3E+KnobControl%3CT%3E+for+LinearKnob%3CT%3E+%7B%0A++++fn+set_position(%26mut+self,+value:+T)+%7B%0A++++++++self.position+=+value;%0A++++%7D%0A%0A++++fn+get_value(%26self,+p:+T)+-%3E+T+%7B%0A++++++++self.position+%2B+p%0A++++%7D%0A%7D%0A%0Aimpl%3CT:+Add%2B+Add%3COutput+=+T%3E+%2B+Copy%3E+KnobControl%3CT%3E+for+LogarithmicKnob%3CT%3E+%7B%0A++++fn+set_position(%26mut+self,+value:+T)+%7B%0A++++++++self.position+=+value;%0A++++%7D%0A%0A++++fn+get_value(%26self,+p:+T)+-%3E+T+%7B%0A++++++++(self.position+%2B+p)%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++enum+Knob%3CT:+Add%2B+Add%3COutput+=+T%3E+%2B+Copy%3E+%7B%0A++++++++Linear(LinearKnob%3CT%3E),%0A++++++++Logarithmic(LogarithmicKnob%3CT%3E),%0A++++%7D%0A%0A++++impl%3CT:+Add%2B+Add%3COutput+=+T%3E+%2B+Copy%3E+KnobControl%3CT%3E+for+Knob%3CT%3E+%7B%0A++++++++fn+set_position(%26mut+self,+value:+T)+%7B%0A++++++++++++match+self+%7B%0A++++++++++++++++Knob::Linear(inner_knob)+=%3E+inner_knob.set_position(value),%0A++++++++++++++++Knob::Logarithmic(inner_knob)+=%3E+inner_knob.set_position(value),%0A++++++++++++%7D%0A++++++++%7D%0A%0A++++++++fn+get_value(%26self,+p:+T)+-%3E+T+%7B%0A++++++++++++match+self+%7B%0A++++++++++++++++Knob::Linear(inner_knob)+=%3E+inner_knob.get_value(p),%0A++++++++++++++++Knob::Logarithmic(inner_knob)+=%3E+inner_knob.get_value(p),%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<ol start="2">
+<li>利用 “魔法” ，相当于加一层代理 ： 参考：<a href="https://github.com/dtolnay/erased-serde/blob/master/explanation/main.rs">https://github.com/dtolnay/erased-serde/blob/master/explanation/main.rs</a></li>
+</ol>
+</div></details></section></div></main></body></html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="epoll"><title>epoll in inviting_rust::ch03::s1_io_model - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">epoll</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#epoll" title="epoll">epoll</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch03::<wbr>s1_<wbr>io_<wbr>model</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch03</a>::<wbr><a href="index.html">s1_io_model</a></div><h1>Function <span class="fn">epoll</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch03/s1_io_model.rs.html#139">Source</a> </span></div><pre class="rust item-decl"><code>pub fn epoll()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h3 id="epoll"><a class="doc-anchor" href="#epoll">§</a>epoll</h3><div class="example-wrap"><pre class="language-text"><code>                        +--------------------------------+     +-------------------------+
+                        | epoll_ctl                      |     | epoll_wait              |
+                        |                                |     |                         |
+                        |                                |     |         +----+          |
+                        |                 +---+          |     |         |    |          |
+                        |                 |   |          |     |         |    |          |
+                        |               +-+---+--+       |     |         +--+-+          |
+                        |               |        |       |     |            |            |
+                        |            +--++     +-++      |     |            |            |
+epoll_create  +----&gt;    |            |   |     |  |      |     |         +--+-+          |
+                        |            +-+-+     +--+      +----&gt;+         |    |          |
+                        |              |                 |event|         |    |          |
+                        |         +----+--+              |     |         +--+-+          |
+                        |         |       |              |     |            |            |
+                        |         ++      |              |     |            |            |
+                        |        +--+   +-+-+            |     |         +--+-+          |
+                        |        |  |   |   |            |     |         |    |          |
+                        |        +--+   +---+            |     |         |    |          |
+                        |                                |     |         +----+          |
+                        |                    红 黑 树     |     |                 链 表    |
+                        +--------------------------------+     +-------------------------+
+
+</code></pre></div>
+<ul>
+<li>epoll_create(int size) : 内核产生一个epoll实例数据结构，并返回一个epfd</li>
+<li>epoll_ctl(int epfd, int op, int fd, struct epoll_event *event)：将被监听的描述符添加到红黑树或从红黑树中删除或者对监听事件进行修改。</li>
+<li>epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout): 阻塞等待注册的事件发生，返回事件的数目，并将触发的事件写入events数组中</li>
+</ul>
+<p>epoll 两种触发机制：</p>
+<ul>
+<li>水平触发机制（LT)。缓冲区只要有数据就触发读写。epoll 默认工作方式。select/poll只支持该方式。</li>
+<li>边缘触发机制（ET)。缓冲区空或满的状态才触发读写。nginx 使用该方式，避免频繁读写。</li>
+</ul>
+<p>惊群问题：</p>
+<p>当多个进程/线程调用epoll_wait时会阻塞等待，当内核触发可读写事件，所有进程/线程都会进行响应，但是实际上只有一个进程/线程真实处理这些事件。
+Liux 4.5 通过引入 EPOLLEXCLUSIVE 标识来保证一个事件发生时候只有一个线程会被唤醒，以避免多侦听下的惊群问题。</p>
+</div></details></section></div></main></body></html>

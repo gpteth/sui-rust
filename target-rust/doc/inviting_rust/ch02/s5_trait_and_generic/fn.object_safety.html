@@ -1,0 +1,84 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="对象安全"><title>object_safety in inviting_rust::ch02::s5_trait_and_generic - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">object_<wbr>safety</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#对象安全" title="对象安全">对象安全</a><ul><li><a href="#对象安全-1" title="对象安全">对象安全</a></li></ul></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s5_<wbr>trait_<wbr>and_<wbr>generic</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s5_trait_and_generic</a></div><h1>Function <span class="fn">object_safety</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s5_trait_and_generic.rs.html#474-476">Source</a> </span></div><pre class="rust item-decl"><code>pub fn object_safety()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="对象安全"><a class="doc-anchor" href="#对象安全">§</a>对象安全</h2><h4 id="对象安全-1"><a class="doc-anchor" href="#对象安全-1">§</a>对象安全</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>一个 <span class="kw">trait </span>如果能实现自己，就认为它是对象安全的</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++%E4%B8%80%E4%B8%AA+trait+%E5%A6%82%E6%9E%9C%E8%83%BD%E5%AE%9E%E7%8E%B0%E8%87%AA%E5%B7%B1%EF%BC%8C%E5%B0%B1%E8%AE%A4%E4%B8%BA%E5%AE%83%E6%98%AF%E5%AF%B9%E8%B1%A1%E5%AE%89%E5%85%A8%E7%9A%84%0A%7D&amp;edition=2018"></a></div>
+<p>为什么必须是对象安全呢？</p>
+<p>trait对象，在运行时已经擦除了类型信息，要通过虚表调用相应的方法。不像静态分发那样，trait对象不是为每个类型都实现trait的方法，而是只实现一个副本（自动为其实现自身），结合虚函数去调用。</p>
+<p>现在想一个问题： 假如那个类型没有实现这个方法怎么办？
+实际上，会有很多种情况下，会出现这个问题。运行时确定的类型和方法应该合法的，保证trait对象在运行时可以安全地调用相关的方法。</p>
+<p>比如trait里有泛型函数。这就搞的很复杂了，可能运行时无法确定该调用哪个函数。反正是各种情况吧。所以，为了避免出现这种问题，官方引入了对象安全的概念。
+实际上就是引入了一系列的规则，也就是上面列出的那些。编译器根据这些规则，在编译期判断一个你写的trait对象，是不是合法的。</p>
+<p>比如：trait对象其实在内部维护两个表：safe_vtable和nonself_vtable，标记有where Self: Sized的会被归类到nonself_vtable，也就是说，不会被trait对象调用。
+这样的话，方法标记有where Self: Sized的trait对象自然是安全的，因为这表示 这个方法 只能为 Self: Sized 都类型实现，是有条件的，所以在运行时有可能存在无效（万一有不是Sized的类型调用，就没有该方法）调用。</p>
+<p>如果是合法的，则代表了，这个trait对象在运行时调用方法应该是没问题的。
+不会出现没有实现，或者不知道该调用哪个的情况。
+这就是对象安全的概念。它和内存安全并无直接关系。
+所以，对象安全的本质就是为了让trait对象可以安全地调用相应的方法。</p>
+<p>如果没有Sized的限定，那么就会很容易写出无用的类型。比如 Box，它用做trait对象即便会编译，但是不能用它做任何事情（后面有演示代码）。
+对于更复杂的trait，往往就没有这么明显了，只有在做了大量繁重的工作之后可能会突然发现某个trait对象无法正常调用方法。
+所以，为trait增加Sized限定，然后编译器自动为该trait实现自身，就可以在编译期准确排除无效的trait对象。
+这就是对象安全。需要注意的是，对象安全和内存安全并无直接的关联，它只是保证trait对象在运行时可以安全准确地调用相关的方法。</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">trait </span>StarkFamily {
+        <span class="kw">fn </span>last_name(<span class="kw-2">&amp;</span><span class="self">self</span>)  -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
+        <span class="kw">fn </span>totem(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
+    }
+
+    <span class="kw">trait </span>TullyFamily {
+        <span class="kw">fn </span>territory(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
+    }
+
+    <span class="kw">trait </span>Children {
+        <span class="kw">fn </span>new(first_name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; <span class="self">Self </span><span class="kw">where </span><span class="self">Self</span>: Sized;
+        <span class="kw">fn </span>first_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
+    }
+
+    <span class="kw">impl </span>StarkFamily <span class="kw">for </span>Children {
+        <span class="kw">fn </span>last_name(<span class="kw-2">&amp;</span><span class="self">self</span>)  -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str{
+            <span class="string">"Stark"
+        </span>}
+
+        <span class="kw">fn </span>totem(<span class="kw-2">&amp;</span><span class="self">self</span>)  -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str{
+            <span class="string">"Wolf"
+        </span>}
+    }
+
+    <span class="kw">impl </span>TullyFamily <span class="kw">for </span>Children {
+        <span class="kw">fn </span>territory(<span class="kw-2">&amp;</span><span class="self">self</span>)  -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str{
+            <span class="string">"Riverrun City"
+        </span>}
+    }
+
+    <span class="kw">struct </span>People{
+        first_name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str
+    }
+
+    <span class="kw">impl </span>Children <span class="kw">for </span>People {
+        <span class="kw">fn </span>new(first_name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) -&gt; <span class="self">Self </span><span class="kw">where </span><span class="self">Self</span>: Sized{
+            <span class="macro">println!</span>(<span class="string">"hello : {} Stark "</span>, first_name);
+            People{first_name: first_name}
+        }
+
+        <span class="kw">fn </span>first_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str{
+            <span class="self">self</span>.first_name
+        }
+    }
+
+    <span class="kw">fn </span>full_name(person: Box&lt;<span class="kw">dyn </span>Children&gt;) {
+        <span class="macro">println!</span>(<span class="string">" --- Winter is coming, the lone {:?} dies, the pack lives ---"</span>, person.totem());
+        <span class="kw">let </span>full = <span class="macro">format!</span>(<span class="string">"{} {}"</span>, person.first_name(), person.last_name() );
+        <span class="macro">println!</span>(<span class="string">"I'm {:?}"</span>, full );
+        <span class="macro">println!</span>(<span class="string">"My Mother come from {:?}"</span>, person.territory());
+    }
+
+    <span class="kw">fn </span>main() {
+        <span class="kw">let </span>sansa = People::new(<span class="string">"Sansa"</span>);
+        <span class="kw">let </span>aray = People::new(<span class="string">"Aray"</span>);
+
+        <span class="kw">let </span>starks: Box&lt;<span class="kw">dyn </span>Children&gt; = Box::new(sansa);
+        full_name(starks);
+
+        <span class="kw">let </span>starks: Box&lt;<span class="kw">dyn </span>Children&gt; = Box::new(aray);
+        full_name(starks);
+    }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Atrait+StarkFamily+%7B%0A++++++++fn+last_name(%26self)++-%3E+%26'static+str;%0A++++++++fn+totem(%26self)+-%3E+%26'static+str;%0A++++%7D%0A%0A++++trait+TullyFamily+%7B%0A++++++++fn+territory(%26self)+-%3E+%26'static+str;%0A++++%7D%0A%0A++++trait+Children+%7B%0A++++++++fn+new(first_name:+%26'static+str)+-%3E+Self+where+Self:+Sized;%0A++++++++fn+first_name(%26self)+-%3E+%26'static+str;%0A++++%7D%0A%0A++++impl+StarkFamily+for+Children+%7B%0A++++++++fn+last_name(%26self)++-%3E+%26'static+str%7B%0A++++++++++++%22Stark%22%0A++++++++%7D%0A%0A++++++++fn+totem(%26self)++-%3E+%26'static+str%7B%0A++++++++++++%22Wolf%22%0A++++++++%7D%0A++++%7D%0A%0A++++impl+TullyFamily+for+Children+%7B%0A++++++++fn+territory(%26self)++-%3E+%26'static+str%7B%0A++++++++++++%22Riverrun+City%22%0A++++++++%7D%0A++++%7D%0A%0A++++struct+People%7B%0A++++++++first_name:+%26'static+str%0A++++%7D%0A%0A++++impl+Children+for+People+%7B%0A++++++++fn+new(first_name:+%26'static+str)+-%3E+Self+where+Self:+Sized%7B%0A++++++++++++println!(%22hello+:+%7B%7D+Stark+%22,+first_name);%0A++++++++++++People%7Bfirst_name:+first_name%7D%0A++++++++%7D%0A%0A++++++++fn+first_name(%26self)+-%3E+%26'static+str%7B%0A++++++++++++self.first_name%0A++++++++%7D%0A++++%7D%0A%0A++++fn+full_name(person:+Box%3Cdyn+Children%3E)+%7B%0A++++++++println!(%22+---+Winter+is+coming,+the+lone+%7B:?%7D+dies,+the+pack+lives+---%22,+person.totem());%0A++++++++let+full+=+format!(%22%7B%7D+%7B%7D%22,+person.first_name(),+person.last_name()+);%0A++++++++println!(%22I'm+%7B:?%7D%22,+full+);%0A++++++++println!(%22My+Mother+come+from+%7B:?%7D%22,+person.territory());%0A++++%7D%0A%0A++++fn+main()+%7B%0A++++++++let+sansa+=+People::new(%22Sansa%22);%0A++++++++let+aray+=+People::new(%22Aray%22);%0A%0A++++++++let+starks:+Box%3Cdyn+Children%3E+=+Box::new(sansa);%0A++++++++full_name(starks);%0A%0A++++++++let+starks:+Box%3Cdyn+Children%3E+=+Box::new(aray);%0A++++++++full_name(starks);%0A++++%7D&amp;edition=2018"></a></div>
+<p>对象安全规则 Rust 源码：<a href="https://github.com/rust-lang/rust/blob/941343e0871dd04ea774e8cee7755461b144ef29/compiler/rustc_middle/src/traits/mod.rs#L643">https://github.com/rust-lang/rust/blob/941343e0871dd04ea774e8cee7755461b144ef29/compiler/rustc_middle/src/traits/mod.rs#L643</a></p>
+</div></details></section></div></main></body></html>

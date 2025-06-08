@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="示例1: Move 的本质：drop 标记"><title>understand_drop in inviting_rust::ch02::s1_ownership - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s1_<wbr>ownership</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s1_ownership</a></div><h1>Function <span class="fn">understand_drop</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s1_ownership.rs.html#468-470">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_drop()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>示例1: Move 的本质：drop 标记</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>main(){
+    <span class="comment">// impl Copy for i32
+    </span><span class="kw">let </span><span class="kw-2">mut </span>a = <span class="string">"42"</span>.to_string();
+    <span class="kw">let </span>b = a; <span class="comment">// drop(a);
+
+    </span>a = <span class="string">"32"</span>.to_string();
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, a);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()%7B%0A++++//+impl+Copy+for+i32%0A++++let+mut+a+=+%2242%22.to_string();%0A++++let+b+=+a;+//+drop(a);%0A%0A++++a+=+%2232%22.to_string();%0A++++println!(%22%7B:?%7D%22,+a);%0A%7D&amp;edition=2018"></a></div>
+<p>示例二：Drop 析构函数</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>PrintDrop(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+<span class="kw">impl </span>Drop <span class="kw">for </span>PrintDrop {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"Dropping {}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+    }
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>x = PrintDrop(<span class="string">"x"</span>);
+    <span class="kw">let </span>y = PrintDrop(<span class="string">"y"</span>);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+PrintDrop(%26'static+str);%0Aimpl+Drop+for+PrintDrop+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22Dropping+%7B%7D%22,+self.0)%0A++++%7D%0A%7D%0Afn+main()+%7B%0A++++let+x+=+PrintDrop(%22x%22);%0A++++let+y+=+PrintDrop(%22y%22);%0A%7D&amp;edition=2018"></a></div>
+<p>元组：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>PrintDrop(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+    <span class="kw">impl </span>Drop <span class="kw">for </span>PrintDrop {
+        <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+            <span class="macro">println!</span>(<span class="string">"Dropping {}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+    }
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>tup1 = (PrintDrop(<span class="string">"a"</span>), PrintDrop(<span class="string">"b"</span>), PrintDrop(<span class="string">"c"</span>));
+    <span class="kw">let </span>tup2 = (PrintDrop(<span class="string">"x"</span>), PrintDrop(<span class="string">"y"</span>), PrintDrop(<span class="string">"z"</span>));
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+PrintDrop(%26'static+str);%0A++++impl+Drop+for+PrintDrop+%7B%0A++++++++fn+drop(%26mut+self)+%7B%0A++++++++++++println!(%22Dropping+%7B%7D%22,+self.0)%0A++++%7D%0A%7D%0Afn+main()+%7B%0A++++let+tup1+=+(PrintDrop(%22a%22),+PrintDrop(%22b%22),+PrintDrop(%22c%22));%0A++++let+tup2+=+(PrintDrop(%22x%22),+PrintDrop(%22y%22),+PrintDrop(%22z%22));%0A%7D&amp;edition=2018"></a></div>
+<p>带panic的元组：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>PrintDrop(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+<span class="kw">impl </span>Drop <span class="kw">for </span>PrintDrop {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"Dropping {}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+}
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>tup1 = (PrintDrop(<span class="string">"a"</span>), PrintDrop(<span class="string">"b"</span>), PrintDrop(<span class="string">"c"</span>));
+    <span class="kw">let </span>tup2 = (PrintDrop(<span class="string">"x"</span>), PrintDrop(<span class="string">"y"</span>), <span class="macro">panic!</span>());
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+PrintDrop(%26'static+str);%0Aimpl+Drop+for+PrintDrop+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22Dropping+%7B%7D%22,+self.0)%0A%7D%0A%7D%0Afn+main()+%7B%0A++++let+tup1+=+(PrintDrop(%22a%22),+PrintDrop(%22b%22),+PrintDrop(%22c%22));%0A++++let+tup2+=+(PrintDrop(%22x%22),+PrintDrop(%22y%22),+panic!());%0A%7D&amp;edition=2018"></a></div>
+<p>结构体：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>PrintDrop(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+
+<span class="kw">impl </span>Drop <span class="kw">for </span>PrintDrop {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"Dropping {}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+    }
+}
+
+<span class="kw">struct </span>Foo {
+    bar: PrintDrop,
+    baz: PrintDrop,
+}
+
+<span class="kw">impl </span>Drop <span class="kw">for </span>Foo {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"Dropping Foo"</span>)
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>foo = Foo {
+        bar: PrintDrop(<span class="string">"bar"</span>),
+        baz: PrintDrop(<span class="string">"baz"</span>),
+    };
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+PrintDrop(%26'static+str);%0A%0Aimpl+Drop+for+PrintDrop+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22Dropping+%7B%7D%22,+self.0)%0A++++%7D%0A%7D%0A%0Astruct+Foo+%7B%0A++++bar:+PrintDrop,%0A++++baz:+PrintDrop,%0A%7D%0A%0Aimpl+Drop+for+Foo+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22Dropping+Foo%22)%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++let+foo+=+Foo+%7B%0A++++++++bar:+PrintDrop(%22bar%22),%0A++++++++baz:+PrintDrop(%22baz%22),%0A++++%7D;%0A%7D&amp;edition=2018"></a></div>
+<p>闭包：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>PrintDrop(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+<span class="kw">impl </span>Drop <span class="kw">for </span>PrintDrop {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"Dropping {}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+    }
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>z = PrintDrop(<span class="string">"z"</span>);
+    <span class="kw">let </span>x = PrintDrop(<span class="string">"x"</span>);
+    <span class="kw">let </span>y = PrintDrop(<span class="string">"y"</span>);
+    <span class="kw">let </span>closure = <span class="kw">move </span>|| { y; z; x; };
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+PrintDrop(%26'static+str);%0Aimpl+Drop+for+PrintDrop+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22Dropping+%7B%7D%22,+self.0)%0A++++%7D%0A%7D%0Afn+main()+%7B%0A++++let+z+=+PrintDrop(%22z%22);%0A++++let+x+=+PrintDrop(%22x%22);%0A++++let+y+=+PrintDrop(%22y%22);%0A++++let+closure+=+move+%7C%7C+%7B+y;+z;+x;+%7D;%0A%7D&amp;edition=2018"></a></div>
+<p>闭包修改变量：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>PrintDrop(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+<span class="kw">impl </span>Drop <span class="kw">for </span>PrintDrop {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"Dropping {}"</span>, <span class="self">self</span>.<span class="number">0</span>)
+    }
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>y = PrintDrop(<span class="string">"y"</span>);
+    <span class="kw">let </span>x = PrintDrop(<span class="string">"x"</span>);
+    <span class="kw">let </span>z = PrintDrop(<span class="string">"z"</span>);
+    <span class="kw">let </span>closure = <span class="kw">move </span>|| {
+        { <span class="kw">let </span>z_ref = <span class="kw-2">&amp;</span>z; }
+        x; y; z;
+    };
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+PrintDrop(%26'static+str);%0Aimpl+Drop+for+PrintDrop+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22Dropping+%7B%7D%22,+self.0)%0A++++%7D%0A%7D%0Afn+main()+%7B%0A++++let+y+=+PrintDrop(%22y%22);%0A++++let+x+=+PrintDrop(%22x%22);%0A++++let+z+=+PrintDrop(%22z%22);%0A++++let+closure+=+move+%7C%7C+%7B%0A++++++++%7B+let+z_ref+=+%26z;+%7D%0A++++++++x;+y;+z;%0A++++%7D;%0A%7D&amp;edition=2018"></a></div>
+<p>示例三： 所有权 forget/ ManuallyDrop</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// https://doc.rust-lang.org/src/alloc/sync.rs.html#319
+</span><span class="kw">impl</span>&lt;T&gt; Arc&lt;T&gt; {
+    <span class="kw">pub fn </span>new(data: T) -&gt; Arc&lt;T&gt; {
+        <span class="comment">// Start the weak pointer count as 1 which is the weak pointer that's
+        // held by all the strong pointers (kinda), see std/rc.rs for more info
+        </span><span class="kw">let </span>x: Box&lt;<span class="kw">_</span>&gt; = <span class="kw">box </span>ArcInner {
+            strong: atomic::AtomicUsize::new(<span class="number">1</span>),
+            weak: atomic::AtomicUsize::new(<span class="number">1</span>),
+            data,
+        };
+        <span class="comment">// ManuallyDrop
+        </span><span class="self">Self</span>::from_inner(Box::leak(x).into())
+    }
+
+    <span class="comment">// ...
+</span>}
+
+<span class="kw">impl</span>&lt;T&gt; Weak&lt;T&gt; {
+    <span class="kw">pub fn </span>into_raw(<span class="self">self</span>) -&gt; <span class="kw-2">*const </span>T {
+        <span class="kw">let </span>result = <span class="self">self</span>.as_ptr();
+        mem::forget(<span class="self">self</span>);
+        result
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+https://doc.rust-lang.org/src/alloc/sync.rs.html%23319%0Afn+main()+%7B%0A++++impl%3CT%3E+Arc%3CT%3E+%7B%0A++++++++pub+fn+new(data:+T)+-%3E+Arc%3CT%3E+%7B%0A++++++++++++//+Start+the+weak+pointer+count+as+1+which+is+the+weak+pointer+that's%0A++++++++++++//+held+by+all+the+strong+pointers+(kinda),+see+std/rc.rs+for+more+info%0A++++++++++++let+x:+Box%3C_%3E+=+box+ArcInner+%7B%0A++++++++++++++++strong:+atomic::AtomicUsize::new(1),%0A++++++++++++++++weak:+atomic::AtomicUsize::new(1),%0A++++++++++++++++data,%0A++++++++++++%7D;%0A++++++++++++//+ManuallyDrop%0A++++++++++++Self::from_inner(Box::leak(x).into())%0A++++++++%7D%0A++++%0A++++++++//+...%0A++++%7D%0A++++%0A++++impl%3CT%3E+Weak%3CT%3E+%7B%0A++++++++pub+fn+into_raw(self)+-%3E+*const+T+%7B%0A++++++++++++let+result+=+self.as_ptr();%0A++++++++++++mem::forget(self);%0A++++++++++++result%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

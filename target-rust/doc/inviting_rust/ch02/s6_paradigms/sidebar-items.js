@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["compiler_oriented_programming"]};

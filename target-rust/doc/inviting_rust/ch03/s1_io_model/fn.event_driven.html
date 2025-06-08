@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="事件驱动编程模型"><title>event_driven in inviting_rust::ch03::s1_io_model - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">event_<wbr>driven</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#事件驱动编程模型" title="事件驱动编程模型">事件驱动编程模型</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch03::<wbr>s1_<wbr>io_<wbr>model</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch03</a>::<wbr><a href="index.html">s1_io_model</a></div><h1>Function <span class="fn">event_driven</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch03/s1_io_model.rs.html#241">Source</a> </span></div><pre class="rust item-decl"><code>pub fn event_driven()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h3 id="事件驱动编程模型"><a class="doc-anchor" href="#事件驱动编程模型">§</a>事件驱动编程模型</h3>
+<p>因为处理 I/O 复用的编程模型相当复杂，为了简化编程，引入了下面两种模型。</p>
+<ul>
+<li>Reactor（反应器） 模式，对应同步I/O，被动的事件分离和分发模型。服务等待请求事件的到来，再通过不受间断的同步处理事件，从而做出反应。</li>
+<li>Preactor（主动器） 模式，对应异步I/O，主动的事件分离和分发模型。这种设计允许多个任务并发的执行，从而提高吞吐量；并可执行耗时长的任务（各个任务间互不影响）。</li>
+</ul>
+<p>Reactor Model:</p>
+<div class="example-wrap"><pre class="language-text"><code>                                                     +----------------+
+req                                        Dispatch  |                |
++------+                                  +--------&gt; | req handler    |
+|      |                                  |          +----------------+
+|      | +----+                           |
++------+      | event    +------------+   |
+              |          |            |   |
+              +--------&gt; |  Service   |   |Dispatch  +----------------+
+                         |  Handler   +------------&gt; |                |
+req          +---------&gt; |            |   |          | req handler    |
++------+     |           +------------+   |          +----------------+
+|      |     | event                      |
+|      +----+                             |
++------+                                  | Dispatch +----------------+
+                                          +---------&gt;+                |
+                                                     | req handler    |
+                                                     +----------------+
+</code></pre></div>
+<p>三种实现方式：</p>
+<ul>
+<li>单线程模式。 accept()、read()、write()以及connect()操作 都在同一线程。</li>
+<li>工作者线程池模式。非 I/O 操作交给线程池处理</li>
+<li>多线程模式。主Reactor (master) ，负责网络监听 ， 子Reactor(worker) 读写网络数据。</li>
+</ul>
+<p>读写操作流程：</p>
+<ol>
+<li>应用注册读写就绪事件和相关联的事件处理器</li>
+<li>事件分离器等待事件发生</li>
+<li>当发生读写就绪事件，事件分离器调用已注册的事件处理器</li>
+<li>事件处理器执行读写操作</li>
+</ol>
+<p>参与者：</p>
+<ol>
+<li>描述符（handle）：操作系统提供的资源，识别 socket等。</li>
+<li>同步事件多路分离器。开启事件循环，等待事件的发生。封装了 多路复用函数 select/poll/epoll等。</li>
+<li>事件处理器。提供回调函数，用于描述与应用程序相关的某个事件的操作。</li>
+<li>具体的事件处理器。事件处理器接口的具体实现。使用描述符来识别事件和程序提供的服务。</li>
+<li>Reactor 管理器。事件处理器的调度核心。分离每个事件，调度事件管理器，调用具体的函数处理某个事件。</li>
+</ol>
+</div></details></section></div></main></body></html>

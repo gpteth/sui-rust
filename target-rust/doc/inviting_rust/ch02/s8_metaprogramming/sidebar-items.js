@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["any_refection","attributes_proc_macros","declarative_macros","derive_proc_macros"]};

@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="线程间共享数据"><title>understand_shared_thread in inviting_rust::ch02::s3_thread_safe - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">understand_<wbr>shared_<wbr>thread</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#线程间共享数据" title="线程间共享数据">线程间共享数据</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s3_<wbr>thread_<wbr>safe</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s3_thread_safe</a></div><h1>Function <span class="fn">understand_shared_thread</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s3_thread_safe.rs.html#172-174">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_shared_thread()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="线程间共享数据"><a class="doc-anchor" href="#线程间共享数据">§</a>线程间共享数据</h4>
+<p><a href="https://doc.rust-lang.org/std/time/struct.Duration.html">https://doc.rust-lang.org/std/time/struct.Duration.html</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::thread;
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>];
+    thread::spawn(<span class="kw">move </span>|| {
+        v.push(<span class="number">4</span>);
+    });
+    <span class="comment">// Can no longer access `v` here.
+</span>}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::thread;%0A%0Afn+main()+%7B%0A++++let+mut+v+=+vec!%5B1,2,3%5D;%0A++++thread::spawn(move+%7C%7C+%7B%0A++++++++v.push(4);%0A++++%7D);%0A++++//+Can+no+longer+access+%60v%60+here.%0A%7D&amp;edition=2018"></a></div>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// invalid
+</span><span class="kw">use </span>std::thread;
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>];
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">10 </span>{
+        thread::spawn(<span class="kw">move </span>|| {
+            v.push(i);
+        });
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+invalid%0Ause+std::thread;%0A%0Afn+main()+%7B%0A++++let+mut+v+=+vec!%5B1,2,3%5D;%0A++++for+i+in+0..10+%7B%0A++++++++thread::spawn(move+%7C%7C+%7B%0A++++++++++++v.push(i);%0A++++++++%7D);%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>借用检查阻止并发Bug</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// invalid
+</span><span class="kw">fn </span>inner_func(vref: <span class="kw-2">&amp;mut </span>Vec&lt;u32&gt;) {
+    std::thread::spawn(<span class="kw">move </span>|| {
+    vref.push(<span class="number">3</span>);
+    });
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>v = <span class="macro">vec!</span>[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>];
+    inner_func(<span class="kw-2">&amp;mut </span>v);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+invalid%0Afn+inner_func(vref:+%26mut+Vec%3Cu32%3E)+%7B%0A++++std::thread::spawn(move+%7C%7C+%7B%0A++++vref.push(3);%0A++++%7D);%0A%7D%0A%0Afn+main()+%7B%0A++++let+mut+v+=+vec!%5B1,2,3%5D;%0A++++inner_func(%26mut+v);%0A%7D&amp;edition=2018"></a></div>
+<p>`‘static’ 与 线程安全</p>
+<p>Note: <a href="https://github.com/rust-lang/rust/issues/24292">曾经的 thread::scoped 会泄漏 JoinGuard 所以被废弃</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::time::Duration;
+<span class="kw">use </span>std::thread;
+
+<span class="kw">struct </span>Foo {
+    string: String,
+    v: Vec&lt;f64&gt;,
+}
+
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span>Foo {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+        <span class="macro">write!</span>(f, <span class="string">"{}: {:?}"</span>, <span class="self">self</span>.string, <span class="self">self</span>.v)
+    }
+}
+
+<span class="kw">fn </span>test&lt;T: Send + Sync + fmt::Display + <span class="lifetime">'static </span>&gt;(val: T) {
+    thread::spawn(<span class="kw">move </span>|| <span class="macro">println!</span>(<span class="string">"{}"</span>, val));
+}
+
+<span class="kw">fn </span>main() {
+    test(<span class="string">"hello"</span>);                <span class="comment">// &amp;'static str
+    </span>test(String::from(<span class="string">"hello"</span>));  <span class="comment">// String
+    </span>test(<span class="number">5</span>);                      <span class="comment">// i32
+
+    // Arbitrary struct containing String and Vec&lt;f64&gt;
+    </span>test(Foo {string: String::from(<span class="string">"hi"</span>), v: <span class="macro">vec!</span>[<span class="number">1.2</span>, <span class="number">2.3</span>]});
+    thread::sleep(Duration::new(<span class="number">1</span>, <span class="number">0</span>));
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::fmt;%0Ause+std::time::Duration;%0Ause+std::thread;%0A%0Astruct+Foo+%7B%0A++++string:+String,%0A++++v:+Vec%3Cf64%3E,%0A%7D%0A%0Aimpl+fmt::Display+for+Foo+%7B%0A++++fn+fmt(%26self,+f:+%26mut+fmt::Formatter)+-%3E+fmt::Result+%7B%0A++++++++write!(f,+%22%7B%7D:+%7B:?%7D%22,+self.string,+self.v)%0A++++%7D%0A%7D%0A%0Afn+test%3CT:+Send+%2B+Sync+%2B+fmt::Display+%2B+'static+%3E(val:+T)+%7B%0A++++thread::spawn(move+%7C%7C+println!(%22%7B%7D%22,+val));%0A%7D%0A%0Afn+main()+%7B%0A++++test(%22hello%22);++++++++++++++++//+%26'static+str%0A++++test(String::from(%22hello%22));++//+String%0A++++test(5);++++++++++++++++++++++//+i32%0A%0A++++//+Arbitrary+struct+containing+String+and+Vec%3Cf64%3E%0A++++test(Foo+%7Bstring:+String::from(%22hi%22),+v:+vec!%5B1.2,+2.3%5D%7D);%0A++++thread::sleep(Duration::new(1,+0));%0A%7D&amp;edition=2018"></a></div>
+<p>使用 crossbeam::scope 共享数据</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>crossbeam;
+<span class="kw">use </span>std::{thread, time::Duration};
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>vec = <span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];
+
+    crossbeam::scope(|scope| {
+        <span class="kw">for </span>e <span class="kw">in </span><span class="kw-2">&amp;</span>vec {
+            scope.spawn(<span class="kw">move </span>|<span class="kw">_</span>| {
+                <span class="macro">println!</span>(<span class="string">"{:?}"</span>, e);
+            });
+        }
+    })
+    .expect(<span class="string">"A child thread panicked"</span>);
+
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, vec);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+crossbeam;%0Ause+std::%7Bthread,+time::Duration%7D;%0A%0Afn+main()+%7B%0A++++let+mut+vec+=+vec!%5B1,+2,+3,+4,+5%5D;%0A%0A++++crossbeam::scope(%7Cscope%7C+%7B%0A++++++++for+e+in+%26vec+%7B%0A++++++++++++scope.spawn(move+%7C_%7C+%7B%0A++++++++++++++++println!(%22%7B:?%7D%22,+e);%0A++++++++++++%7D);%0A++++++++%7D%0A++++%7D)%0A++++.expect(%22A+child+thread+panicked%22);%0A%0A++++println!(%22%7B:?%7D%22,+vec);%0A%7D&amp;edition=2018"></a></div>
+<p>scope thread 修改数据</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>crossbeam; <span class="comment">// 0.6.0
+</span><span class="kw">use </span>std::{thread, time::Duration};
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>vec = <span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>];
+
+    crossbeam::scope(|scope| {
+        <span class="kw">for </span>e <span class="kw">in </span><span class="kw-2">&amp;mut </span>vec {
+            scope.spawn(<span class="kw">move </span>|<span class="kw">_</span>| {
+                thread::sleep(Duration::from_secs(<span class="number">1</span>));
+                <span class="kw-2">*</span>e += <span class="number">1</span>;
+            });
+        }
+    })
+    .expect(<span class="string">"A child thread panicked"</span>);
+
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, vec);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+crossbeam;+//+0.6.0%0Ause+std::%7Bthread,+time::Duration%7D;%0A%0Afn+main()+%7B%0A++++let+mut+vec+=+vec!%5B1,+2,+3,+4,+5%5D;%0A%0A++++crossbeam::scope(%7Cscope%7C+%7B%0A++++++++for+e+in+%26mut+vec+%7B%0A++++++++++++scope.spawn(move+%7C_%7C+%7B%0A++++++++++++++++thread::sleep(Duration::from_secs(1));%0A++++++++++++++++*e+%2B=+1;%0A++++++++++++%7D);%0A++++++++%7D%0A++++%7D)%0A++++.expect(%22A+child+thread+panicked%22);%0A%0A++++println!(%22%7B:?%7D%22,+vec);%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

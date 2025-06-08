@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Unsafe Rust 介绍"><title>unsafe_intro in inviting_rust::ch02::s9_unsafe_rust - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">unsafe_<wbr>intro</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#unsafe-rust-介绍" title="Unsafe Rust 介绍">Unsafe Rust 介绍</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s9_<wbr>unsafe_<wbr>rust</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s9_unsafe_rust</a></div><h1>Function <span class="fn">unsafe_intro</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s9_unsafe_rust.rs.html#84">Source</a> </span></div><pre class="rust item-decl"><code>pub fn unsafe_intro()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="unsafe-rust-介绍"><a class="doc-anchor" href="#unsafe-rust-介绍">§</a>Unsafe Rust 介绍</h2>
+<p>示例1: Unsafe Rust 是 Safe Rust 的超集</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">fn </span>main(){
+        <span class="kw">unsafe </span>{
+            <span class="kw">let </span><span class="kw-2">mut </span>a = <span class="string">"hello"</span>;
+            <span class="kw">let </span>b = <span class="kw-2">&amp;</span>a;
+            <span class="kw">let </span>c = <span class="kw-2">&amp;mut </span>a;
+        }
+    }</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()%7B%0A++++++++unsafe+%7B%0A++++++++++++let+mut+a+=+%22hello%22;%0A++++++++++++let+b+=+%26a;%0A++++++++++++let+c+=+%26mut+a;%0A++++++++%7D%0A++++%7D&amp;edition=2018"></a></div>
+<p>Unsafe Rust是指，在进行以下五种操作的时候，并不会提供任何安全检查：</p>
+<ul>
+<li>解引用裸指针。</li>
+<li>调用unsafe的函数或方法。</li>
+<li>访问或修改可变静态变量。</li>
+<li>实现unsafe trait。</li>
+<li>读写Union联合体中的字段。</li>
+</ul>
+<p>解引用裸指针</p>
+<ul>
+<li>Rust提供了<em>const T（不变）和</em>mut T（可变）两种指针类型。因为这两种指针和C语言中的指针十分相近，所以叫其原生指针（Raw Pointer）。</li>
+</ul>
+<p>原生指针具有以下特点：</p>
+<ul>
+<li>并不保证指向合法的内存。比如很可能是一个空指针。</li>
+<li>不能像智能指针那样自动清理内存。需要像C语言那样手动管理内存。</li>
+<li>没有生命周期的概念，也就是说，编译器不会对其提供借用检查。</li>
+<li>不能保证线程安全。</li>
+</ul>
+<p>可见，原生指针并不受Safe Rust提供的那一层“安全外衣”保护，所以也被称为“裸指针”。所以，在对裸指针进行解引用操作的时候，属于不安全行为。</p>
+<p>Unsafe语法</p>
+<p>通过unsafe关键字和unsafe块就可以使用Unsafe Rust，它们的作用如下：</p>
+<ul>
+<li>unsafe关键字，用于标记（或者说声明）函数、方法和trait。</li>
+<li>unsafe块，用于执行Unsafe Rust允许的五种操作。</li>
+</ul>
+<p>查看标准库String中的 unsafe 函数<a href="https://doc.rust-lang.org/stable/std/str/fn.from_utf8_unchecked.html">from_utf8_unchecked</a>，看看为什么是Unsafe的。</p>
+<p>这里最大的风险在于，如果一个函数存在违反“契约”的风险，而开发者并没有使用unsafe关键字将其标记，那该函数就很可能会成为Bug的温床。
+被unsafe关键字标记的不安全函数或方法，只能在unsafe块中被调用。</p>
+<p>示例2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">static </span><span class="kw-2">mut </span>COUNTER: u32 = <span class="number">0</span>;
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>inc = <span class="number">3</span>;
+    <span class="kw">unsafe </span>{
+        COUNTER += inc;
+        <span class="macro">println!</span>(<span class="string">"COUNTER: {}"</span>, COUNTER);
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astatic+mut+COUNTER:+u32+=+0;%0Afn+main()+%7B%0A++++let+inc+=+3;%0A++++unsafe+%7B%0A++++++++COUNTER+%2B=+inc;%0A++++++++println!(%22COUNTER:+%7B%7D%22,+COUNTER);%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>Safe Rust 是基于很多 Unsafe Rust 实现的，那么 Safe Rust 凭什么 Safe ？</p>
+</div></details></section></div></main></body></html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="示例： 理解 trait对象中的生命周期参数"><title>understand_lifetime_hrtb in inviting_rust::ch02::s2_lifetime - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">understand_<wbr>lifetime_<wbr>hrtb</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#理解-hrtb-higher-ranked-trait-bounds" title="理解 HRTB (higher ranked trait bounds)">理解 HRTB (higher ranked trait bounds)</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s2_<wbr>lifetime</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s2_lifetime</a></div><h1>Function <span class="fn">understand_lifetime_hrtb</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s2_lifetime.rs.html#529-531">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_lifetime_hrtb()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>示例： 理解 trait对象中的生命周期参数</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">trait </span>Foo&lt;<span class="lifetime">'a</span>&gt; {}
+<span class="kw">struct </span>FooImpl&lt;<span class="lifetime">'a</span>&gt; {
+    s: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u32],
+}
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; Foo&lt;<span class="lifetime">'a</span>&gt; <span class="kw">for </span>FooImpl&lt;<span class="lifetime">'a</span>&gt; {
+}
+<span class="comment">// 为 trait对象 增加 'a ，因为 Box 默认是 static 的，而FooImpl 中的 s 则是引用
+// 表明该trait对象（结构体实例）与其结构体中的引用的生命周期是一样长的（&lt;=）
+</span><span class="kw">fn </span>foo&lt;<span class="lifetime">'a</span>&gt;(s: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u32]) -&gt; Box&lt;<span class="kw">dyn </span>Foo&lt;<span class="lifetime">'a</span>&gt; + <span class="lifetime">'a</span>&gt; {
+    Box::new(FooImpl { s: s })
+}
+<span class="kw">fn </span>main(){}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Atrait+Foo%3C'a%3E+%7B%7D%0Astruct+FooImpl%3C'a%3E+%7B%0A++++s:+%26'a+%5Bu32%5D,%0A%7D%0Aimpl%3C'a%3E+Foo%3C'a%3E+for+FooImpl%3C'a%3E+%7B%0A%7D%0A//+%E4%B8%BA+trait%E5%AF%B9%E8%B1%A1+%E5%A2%9E%E5%8A%A0+'a+%EF%BC%8C%E5%9B%A0%E4%B8%BA+Box+%E9%BB%98%E8%AE%A4%E6%98%AF+static+%E7%9A%84%EF%BC%8C%E8%80%8CFooImpl+%E4%B8%AD%E7%9A%84+s+%E5%88%99%E6%98%AF%E5%BC%95%E7%94%A8%0A//+%E8%A1%A8%E6%98%8E%E8%AF%A5trait%E5%AF%B9%E8%B1%A1%EF%BC%88%E7%BB%93%E6%9E%84%E4%BD%93%E5%AE%9E%E4%BE%8B%EF%BC%89%E4%B8%8E%E5%85%B6%E7%BB%93%E6%9E%84%E4%BD%93%E4%B8%AD%E7%9A%84%E5%BC%95%E7%94%A8%E7%9A%84%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E6%98%AF%E4%B8%80%E6%A0%B7%E9%95%BF%E7%9A%84%EF%BC%88%3C=%EF%BC%89%0Afn+foo%3C'a%3E(s:+%26'a+%5Bu32%5D)+-%3E+Box%3Cdyn+Foo%3C'a%3E+%2B+'a%3E+%7B%0A++++Box::new(FooImpl+%7B+s:+s+%7D)%0A%7D%0Afn+main()%7B%7D&amp;edition=2018"></a></div>
+<h4 id="理解-hrtb-higher-ranked-trait-bounds"><a class="doc-anchor" href="#理解-hrtb-higher-ranked-trait-bounds">§</a>理解 HRTB (higher ranked trait bounds)</h4>
+<p>示例一：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::fmt::Debug;
+<span class="kw">trait </span>DoSomething&lt;T&gt; {
+    <span class="kw">fn </span>do_sth(<span class="kw-2">&amp;</span><span class="self">self</span>, value: T);
+}
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, T: Debug&gt; DoSomething&lt;T&gt; <span class="kw">for </span><span class="kw-2">&amp;</span><span class="lifetime">'a </span>usize {
+    <span class="kw">fn </span>do_sth(<span class="kw-2">&amp;</span><span class="self">self</span>, value: T) {
+        <span class="macro">println!</span>(<span class="string">"{:?}"</span>, value);
+    }
+}
+<span class="kw">fn </span>foo&lt;<span class="lifetime">'a</span>&gt;(b: Box&lt;DoSomething&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>usize&gt;&gt;) {
+    <span class="kw">let </span>s: usize = <span class="number">10</span>;
+    b.do_sth(<span class="kw-2">&amp;</span>s) <span class="comment">// error[E0597]: `s` does not live long enough
+</span>}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span>x  = Box::new(<span class="kw-2">&amp;</span><span class="number">2usize</span>);
+    foo(x);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::fmt::Debug;%0Atrait+DoSomething%3CT%3E+%7B%0A++++fn+do_sth(%26self,+value:+T);%0A%7D%0Aimpl%3C'a,+T:+Debug%3E+DoSomething%3CT%3E+for+%26'a+usize+%7B%0A++++fn+do_sth(%26self,+value:+T)+%7B%0A++++++++println!(%22%7B:?%7D%22,+value);%0A++++%7D%0A%7D%0Afn+foo%3C'a%3E(b:+Box%3CDoSomething%3C%26'a+usize%3E%3E)+%7B%0A++++let+s:+usize+=+10;%0A++++b.do_sth(%26s)+//+error%5BE0597%5D:+%60s%60+does+not+live+long+enough%0A%7D%0Afn+main()%7B%0A++++let+x++=+Box::new(%262usize);%0A++++foo(x);%0A%7D&amp;edition=2018"></a></div>
+<p>修正：使用 <code>for&lt;'f&gt;</code> 改为 late bound</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">use </span>std::fmt::Debug;
+<span class="kw">trait </span>DoSomething&lt;T&gt; {
+    <span class="kw">fn </span>do_sth(<span class="kw-2">&amp;</span><span class="self">self</span>, value: T);
+}
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, T: Debug&gt; DoSomething&lt;T&gt; <span class="kw">for </span><span class="kw-2">&amp;</span><span class="lifetime">'a </span>usize {
+    <span class="kw">fn </span>do_sth(<span class="kw-2">&amp;</span><span class="self">self</span>, value: T) {
+        <span class="macro">println!</span>(<span class="string">"{:?}"</span>, value);
+    }
+}
+<span class="kw">fn </span>bar(b: Box&lt;<span class="kw">for</span>&lt;<span class="lifetime">'f</span>&gt; DoSomething&lt;<span class="kw-2">&amp;</span><span class="lifetime">'f </span>usize&gt;&gt;) {
+    <span class="kw">let </span>s: usize = <span class="number">10</span>;
+    b.do_sth(<span class="kw-2">&amp;</span>s);
+}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span>x  = Box::new(<span class="kw-2">&amp;</span><span class="number">2usize</span>);
+    bar(x);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0Ause+std::fmt::Debug;%0Atrait+DoSomething%3CT%3E+%7B%0A++++fn+do_sth(%26self,+value:+T);%0A%7D%0Aimpl%3C'a,+T:+Debug%3E+DoSomething%3CT%3E+for+%26'a+usize+%7B%0A++++fn+do_sth(%26self,+value:+T)+%7B%0A++++++++println!(%22%7B:?%7D%22,+value);%0A++++%7D%0A%7D%0Afn+bar(b:+Box%3Cfor%3C'f%3E+DoSomething%3C%26'f+usize%3E%3E)+%7B%0A++++let+s:+usize+=+10;%0A++++b.do_sth(%26s);%0A%7D%0Afn+main()%7B%0A++++let+x++=+Box::new(%262usize);%0A++++bar(x);%0A%7D&amp;edition=2018"></a></div>
+<p>示例 2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>rand;
+<span class="kw">use </span>std::io::Read;
+
+<span class="kw">trait </span>Checksum&lt;R: Read&gt; {
+    <span class="kw">fn </span>calc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, r: R) -&gt; Vec&lt;u8&gt;;
+}
+
+<span class="kw">struct </span>Xor;
+
+<span class="kw">impl</span>&lt;R: Read&gt; Checksum&lt;R&gt; <span class="kw">for </span>Xor {
+    <span class="kw">fn </span>calc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>r: R) -&gt; Vec&lt;u8&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>res: u8 = <span class="number">0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">8</span>];
+        <span class="kw">loop </span>{
+            <span class="kw">let </span>read = r.read(<span class="kw-2">&amp;mut </span>buf).unwrap();
+            <span class="kw">if </span>read == <span class="number">0 </span>{
+                <span class="kw">break</span>;
+            }
+            <span class="kw">for </span>b <span class="kw">in </span><span class="kw-2">&amp;</span>buf[..read] {
+                res ^= b;
+            }
+        }
+
+        <span class="macro">vec!</span>[res]
+    }
+}
+
+<span class="kw">struct </span>Add;
+
+<span class="kw">impl</span>&lt;R: Read&gt; Checksum&lt;R&gt; <span class="kw">for </span>Add {
+    <span class="kw">fn </span>calc(<span class="kw-2">&amp;mut </span><span class="self">self</span>, <span class="kw-2">mut </span>r: R) -&gt; Vec&lt;u8&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>res: u8 = <span class="number">0</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">8</span>];
+        <span class="kw">loop </span>{
+            <span class="kw">let </span>read = r.read(<span class="kw-2">&amp;mut </span>buf).unwrap();
+            <span class="kw">if </span>read == <span class="number">0 </span>{
+                <span class="kw">break</span>;
+            }
+            <span class="kw">for </span>b <span class="kw">in </span><span class="kw-2">&amp;</span>buf[..read] {
+                <span class="kw">let </span>tmp = res <span class="kw">as </span>u16 + <span class="kw-2">*</span>b <span class="kw">as </span>u16;
+                res = tmp <span class="kw">as </span>u8;
+            }
+        }
+
+        <span class="macro">vec!</span>[res]
+    }
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>buf = [<span class="number">0u8</span>; <span class="number">8</span>];
+    <span class="comment">// error[E0308]: `if` and `else` have incompatible types
+    // 修正：
+    // step 1: Box&lt;dyn Checksum&lt;&amp;[u8]&gt;&gt; 转为 trait 对象
+    // step 2: Box&lt;dyn for&lt;'a&gt; Checksum&lt;&amp;'a [u8]&gt;&gt; 使用 for&lt;'a&gt; 转为 late bound
+    </span><span class="kw">let </span><span class="kw-2">mut </span>checker = <span class="kw">if </span>rand::random() {
+        <span class="macro">println!</span>(<span class="string">"Initializing Xor Checksum"</span>);
+        Box::new(Xor)
+    } <span class="kw">else </span>{
+        <span class="macro">println!</span>(<span class="string">"Initializing Add Checksum"</span>);
+        Box::new(Add)
+    };
+
+    <span class="kw">let </span><span class="kw-2">mut </span>data = <span class="string">"Sedm lumpu slohlo pumpu za uplnku"</span>.as_bytes();
+    <span class="kw">let </span><span class="kw-2">mut </span>i = <span class="number">0</span>;
+
+    <span class="kw">loop </span>{
+        <span class="kw">let </span>chunk_size = data.read(<span class="kw-2">&amp;mut </span>buf).unwrap();
+        <span class="kw">if </span>chunk_size == <span class="number">0 </span>{
+            <span class="kw">break</span>;
+        }
+        <span class="kw">let </span>cs = checker.calc(<span class="kw-2">&amp;</span>buf[..chunk_size]);
+        <span class="macro">println!</span>(<span class="string">"Checksum {} is {:?}"</span>, i, cs);
+        i += <span class="number">1</span>;
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+rand;%0Ause+std::io::Read;%0A%0Atrait+Checksum%3CR:+Read%3E+%7B%0A++++fn+calc(%26mut+self,+r:+R)+-%3E+Vec%3Cu8%3E;%0A%7D%0A%0Astruct+Xor;%0A%0Aimpl%3CR:+Read%3E+Checksum%3CR%3E+for+Xor+%7B%0A++++fn+calc(%26mut+self,+mut+r:+R)+-%3E+Vec%3Cu8%3E+%7B%0A++++++++let+mut+res:+u8+=+0;%0A++++++++let+mut+buf+=+%5B0u8;+8%5D;%0A++++++++loop+%7B%0A++++++++++++let+read+=+r.read(%26mut+buf).unwrap();%0A++++++++++++if+read+==+0+%7B%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++for+b+in+%26buf%5B..read%5D+%7B%0A++++++++++++++++res+%5E=+b;%0A++++++++++++%7D%0A++++++++%7D%0A%0A++++++++vec!%5Bres%5D%0A++++%7D%0A%7D%0A%0Astruct+Add;%0A%0Aimpl%3CR:+Read%3E+Checksum%3CR%3E+for+Add+%7B%0A++++fn+calc(%26mut+self,+mut+r:+R)+-%3E+Vec%3Cu8%3E+%7B%0A++++++++let+mut+res:+u8+=+0;%0A++++++++let+mut+buf+=+%5B0u8;+8%5D;%0A++++++++loop+%7B%0A++++++++++++let+read+=+r.read(%26mut+buf).unwrap();%0A++++++++++++if+read+==+0+%7B%0A++++++++++++++++break;%0A++++++++++++%7D%0A++++++++++++for+b+in+%26buf%5B..read%5D+%7B%0A++++++++++++++++let+tmp+=+res+as+u16+%2B+*b+as+u16;%0A++++++++++++++++res+=+tmp+as+u8;%0A++++++++++++%7D%0A++++++++%7D%0A%0A++++++++vec!%5Bres%5D%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++let+mut+buf+=+%5B0u8;+8%5D;%0A++++//+error%5BE0308%5D:+%60if%60+and+%60else%60+have+incompatible+types%0A++++//+%E4%BF%AE%E6%AD%A3%EF%BC%9A%0A++++//+step+1:+Box%3Cdyn+Checksum%3C%26%5Bu8%5D%3E%3E+%E8%BD%AC%E4%B8%BA+trait+%E5%AF%B9%E8%B1%A1%0A++++//+step+2:+Box%3Cdyn+for%3C'a%3E+Checksum%3C%26'a+%5Bu8%5D%3E%3E+%E4%BD%BF%E7%94%A8+for%3C'a%3E+%E8%BD%AC%E4%B8%BA+late+bound%0A++++let+mut+checker+=+if+rand::random()+%7B%0A++++++++println!(%22Initializing+Xor+Checksum%22);%0A++++++++Box::new(Xor)%0A++++%7D+else+%7B%0A++++++++println!(%22Initializing+Add+Checksum%22);%0A++++++++Box::new(Add)%0A++++%7D;%0A%0A++++let+mut+data+=+%22Sedm+lumpu+slohlo+pumpu+za+uplnku%22.as_bytes();%0A++++let+mut+i+=+0;%0A%0A++++loop+%7B%0A++++++++let+chunk_size+=+data.read(%26mut+buf).unwrap();%0A++++++++if+chunk_size+==+0+%7B%0A++++++++++++break;%0A++++++++%7D%0A++++++++let+cs+=+checker.calc(%26buf%5B..chunk_size%5D);%0A++++++++println!(%22Checksum+%7B%7D+is+%7B:?%7D%22,+i,+cs);%0A++++++++i+%2B=+1;%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

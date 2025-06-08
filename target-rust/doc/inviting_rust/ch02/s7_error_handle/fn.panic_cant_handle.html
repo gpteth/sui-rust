@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="panic 的两种类型："><title>panic_cant_handle in inviting_rust::ch02::s7_error_handle - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">panic_<wbr>cant_<wbr>handle</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#panic-的两种类型" title="panic 的两种类型：">panic 的两种类型：</a></li><li><a href="#恐慌安全" title="恐慌安全：">恐慌安全：</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s7_<wbr>error_<wbr>handle</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s7_error_handle</a></div><h1>Function <span class="fn">panic_cant_handle</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s7_error_handle.rs.html#240-242">Source</a> </span></div><pre class="rust item-decl"><code>pub fn panic_cant_handle()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="panic-的两种类型"><a class="doc-anchor" href="#panic-的两种类型">§</a>panic 的两种类型：</h4>
+<ul>
+<li>Unwinding（栈展开）。</li>
+<li>Aborting（中止）。</li>
+</ul>
+<p>Unwinding 可以使应用程序线程以相对干净的方式关闭。
+回收所有分配的系统资源，正确删除所有应用程序对象，依此类推。
+此外，恐慌停止在有问题的线程的边界，而不是杀死整个应用程序过程。
+所有这一切意味着，如果所有对象都具有明智的析构函数，则尽管有困难，但仍可以从紧急情况中恢复应用程序。</p>
+<p>如果你应用程序是为此目的而设计的，则可以检测到线程紧急情况并重新启动有问题的线程，希望该操作能够正确恢复。
+在无法关闭应用程序的情况下，例如在关键系统中，类似于Erlang的容错方法可能是有意义的。</p>
+<p>对于Aborting，不存在应用程序恢复的可能性。一旦某些代码中止，应用程序进程将立即终止，这意味着要实现容错功能，就需要进行更加复杂的多进程设计。
+另外，由于未运行资源析构函数，因此整个系统可能处于不一致状态，这意味着重新启动应用程序可能非常不容易。</p>
+<p>总而言之，仅应在确实不关心应用程序立即崩溃并可能破坏在崩溃过程中操作的任何硬件/操作系统状态的情况下启用Aborting恐慌。</p>
+<p>需要了解一个事实，Rust 目前对 OOM(out of memory)对处理是直接 Aborting ，无论你如何设置Panic类型。</p>
+<h4 id="恐慌安全"><a class="doc-anchor" href="#恐慌安全">§</a>恐慌安全：</h4>
+<p><a href="https://rustmagazine.github.io/rust_magazine_2021/chapter_1/rust_security_part1.html">Rust Magazine #01 security</a></p>
+<ul>
+<li>catch_unwind</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">use </span>std::panic;
+<span class="kw">fn </span>sum(a: i32, b: i32) -&gt; i32{
+    a + b
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>result = panic::catch_unwind(|| { <span class="macro">println!</span>(<span class="string">"hello!"</span>); });
+    <span class="macro">assert!</span>(result.is_ok());
+    <span class="kw">let </span>result = panic::catch_unwind(|| { <span class="macro">panic!</span>(<span class="string">"oh no!"</span>); });
+    <span class="macro">assert!</span>(result.is_err());
+   <span class="macro">println!</span>(<span class="string">"{}"</span>, sum(<span class="number">1</span>, <span class="number">2</span>));
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0Ause+std::panic;%0Afn+sum(a:+i32,+b:+i32)+-%3E+i32%7B%0A++++a+%2B+b%0A%7D%0Afn+main()+%7B%0A++++let+result+=+panic::catch_unwind(%7C%7C+%7B+println!(%22hello!%22);+%7D);%0A++++assert!(result.is_ok());%0A++++let+result+=+panic::catch_unwind(%7C%7C+%7B+panic!(%22oh+no!%22);+%7D);%0A++++assert!(result.is_err());%0A+++println!(%22%7B%7D%22,+sum(1,+2));%0A%7D&amp;edition=2018"></a></div>
+<p>使用 set_hook</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::panic;
+<span class="kw">fn </span>sum(a: i32, b: i32) -&gt; i32{
+    a + b
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>result = panic::catch_unwind(|| { <span class="macro">println!</span>(<span class="string">"hello!"</span>); });
+    <span class="macro">assert!</span>(result.is_ok());
+    panic::set_hook(Box::new(|panic_info| {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(location) = panic_info.location() {
+            <span class="macro">println!</span>(<span class="string">"panic occurred '{}' at {}"</span>,
+                location.file(), location.line()
+            );
+       } <span class="kw">else </span>{
+            <span class="macro">println!</span>(<span class="string">"can't get location information..."</span>);
+       }
+   }));
+   <span class="kw">let </span>result = panic::catch_unwind(|| { <span class="macro">panic!</span>(<span class="string">"oh no!"</span>); });
+   <span class="macro">assert!</span>(result.is_err());
+   <span class="macro">println!</span>(<span class="string">"{}"</span>, sum(<span class="number">1</span>, <span class="number">2</span>));
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::panic;%0Afn+sum(a:+i32,+b:+i32)+-%3E+i32%7B%0A++++a+%2B+b%0A%7D%0Afn+main()+%7B%0A++++let+result+=+panic::catch_unwind(%7C%7C+%7B+println!(%22hello!%22);+%7D);%0A++++assert!(result.is_ok());%0A++++panic::set_hook(Box::new(%7Cpanic_info%7C+%7B%0A++++++++if+let+Some(location)+=+panic_info.location()+%7B%0A++++++++++++println!(%22panic+occurred+'%7B%7D'+at+%7B%7D%22,%0A++++++++++++++++location.file(),+location.line()%0A++++++++++++);%0A+++++++%7D+else+%7B%0A++++++++++++println!(%22can't+get+location+information...%22);%0A+++++++%7D%0A+++%7D));%0A+++let+result+=+panic::catch_unwind(%7C%7C+%7B+panic!(%22oh+no!%22);+%7D);%0A+++assert!(result.is_err());%0A+++println!(%22%7B%7D%22,+sum(1,+2));%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

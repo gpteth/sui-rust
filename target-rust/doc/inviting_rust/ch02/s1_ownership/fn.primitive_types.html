@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Rust 语义：Move 语义 与 Copy 语义"><title>primitive_types in inviting_rust::ch02::s1_ownership - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">primitive_<wbr>types</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#rust-语义move-语义-与-copy-语义" title="Rust 语义：Move 语义 与 Copy 语义">Rust 语义：Move 语义 与 Copy 语义</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s1_<wbr>ownership</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s1_ownership</a></div><h1>Function <span class="fn">primitive_types</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s1_ownership.rs.html#82-84">Source</a> </span></div><pre class="rust item-decl"><code>pub fn primitive_types()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="rust-语义move-语义-与-copy-语义"><a class="doc-anchor" href="#rust-语义move-语义-与-copy-语义">§</a>Rust 语义：Move 语义 与 Copy 语义</h4>
+<p>基本数据类型： https://doc.rust-lang.org/std/index.html#primitives</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>main(){
+    <span class="comment">// impl Copy for i32
+    </span><span class="kw">let </span>a = <span class="number">42</span>;
+    <span class="kw">let </span>b = a;
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, a);  <span class="comment">// work
+
+    // impl Copy for &amp;'static str
+    </span><span class="kw">let </span>a = <span class="string">"42"</span>;
+    <span class="kw">let </span>b = a;
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, a); <span class="comment">// work
+
+    // impl !Copy for String
+    </span><span class="kw">let </span>a = <span class="string">"42"</span>.to_string();
+    <span class="comment">// &amp;String deref to &amp;str
+    </span><span class="kw">let </span>b : <span class="kw-2">&amp;</span>str = <span class="kw-2">&amp;</span>a;
+    <span class="comment">// impl Copy for &amp;'a T
+    </span><span class="kw">let </span>c = b;
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, b); <span class="comment">// work
+
+    // impl !Copy for String
+    </span><span class="kw">let </span><span class="kw-2">mut </span>a = <span class="string">"42"</span>.to_string();
+    <span class="comment">// impl !Copy for &amp;mut T
+    </span><span class="kw">let </span>b : <span class="kw-2">&amp;mut </span>str = <span class="kw-2">&amp;mut </span>a;
+    <span class="kw">let </span>c = b;
+    <span class="comment">// println!("{:?}", b); // don't work, b have been moved
+
+    // auto impl Copy for Tuple, if all item implemented Copy trait in Tuple
+    </span><span class="kw">let </span>t = (<span class="number">42</span>, <span class="string">"42"</span>);
+    <span class="kw">let </span>t2 = t;
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, t); <span class="comment">// work
+
+    // auto impl !Copy for Tuple
+    </span><span class="kw">let </span>t = (<span class="number">42</span>, <span class="string">"42"</span>.to_string());
+    <span class="kw">let </span>t2 = t;
+    <span class="comment">// println!("{:?}", t); // don't work, t have been moved
+</span>}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()%7B%0A++++//+impl+Copy+for+i32%0A++++let+a+=+42;%0A++++let+b+=+a;%0A++++println!(%22%7B:?%7D%22,+a);++//+work%0A%0A++++//+impl+Copy+for+%26'static+str%0A++++let+a+=+%2242%22;%0A++++let+b+=+a;%0A++++println!(%22%7B:?%7D%22,+a);+//+work%0A%0A++++//+impl+!Copy+for+String%0A++++let+a+=+%2242%22.to_string();%0A++++//+%26String+deref+to+%26str%0A++++let+b+:+%26str+=+%26a;%0A++++//+impl+Copy+for+%26'a+T%0A++++let+c+=+b;%0A++++println!(%22%7B:?%7D%22,+b);+//+work%0A%0A++++//+impl+!Copy+for+String%0A++++let+mut+a+=+%2242%22.to_string();%0A++++//+impl+!Copy+for+%26mut+T%0A++++let+b+:+%26mut+str+=+%26mut+a;%0A++++let+c+=+b;%0A++++//+println!(%22%7B:?%7D%22,+b);+//+don't+work,+b+have+been+moved%0A%0A++++//+auto+impl+Copy+for+Tuple,+if+all+item+implemented+Copy+trait+in+Tuple%0A++++let+t+=+(42,+%2242%22);%0A++++let+t2+=+t;%0A++++println!(%22%7B:?%7D%22,+t);+//+work%0A%0A++++//+auto+impl+!Copy+for+Tuple%0A++++let+t+=+(42,+%2242%22.to_string());%0A++++let+t2+=+t;%0A++++//+println!(%22%7B:?%7D%22,+t);+//+don't+work,+t+have+been+moved%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

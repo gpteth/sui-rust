@@ -1,0 +1,72 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="概念介绍"><title>trait_concept in inviting_rust::ch02::s5_trait_and_generic - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">trait_<wbr>concept</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#概念介绍" title="概念介绍">概念介绍</a><ul><li><a href="#trait-四种作用" title="trait 四种作用">trait 四种作用</a></li><li><a href="#静态分发单态化---monomorphized" title="静态分发（单态化 - Monomorphized）">静态分发（单态化 - Monomorphized）</a></li></ul></li><li><a href="#trait-一致性" title="trait 一致性">trait 一致性</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s5_<wbr>trait_<wbr>and_<wbr>generic</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s5_trait_and_generic</a></div><h1>Function <span class="fn">trait_concept</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s5_trait_and_generic.rs.html#106-108">Source</a> </span></div><pre class="rust item-decl"><code>pub fn trait_concept()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="概念介绍"><a class="doc-anchor" href="#概念介绍">§</a>概念介绍</h2><h4 id="trait-四种作用"><a class="doc-anchor" href="#trait-四种作用">§</a>trait 四种作用</h4>
+<ul>
+<li>接口 (interface)</li>
+<li>类型标记（Mark)</li>
+<li>泛型限定（trait bound）</li>
+<li>抽象类型（trait object）</li>
+</ul>
+<h4 id="静态分发单态化---monomorphized"><a class="doc-anchor" href="#静态分发单态化---monomorphized">§</a>静态分发（单态化 - Monomorphized）</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::string::ToString;
+
+<span class="kw">fn </span>print&lt;T: ToString&gt;(v: T) {
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, v.to_string());
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++use+std::string::ToString;%0A++++%0A++++fn+print%3CT:+ToString%3E(v:+T)+%7B%0A++++++++println!(%22%7B%7D%22,+v.to_string());%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>或 <code>impl Trait</code>语法</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::string::ToString;
+
+<span class="attr">#[inline(never)]
+</span><span class="kw">fn </span>print(v: <span class="kw-2">&amp;</span><span class="kw">impl </span>ToString) {
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, v.to_string());
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++use+std::string::ToString;%0A++++%0A++++%23%5Binline(never)%5D%0A++++fn+print(v:+%26impl+ToString)+%7B%0A++++++++println!(%22%7B%7D%22,+v.to_string());%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>使用 <code>impl Trait</code> 解决问题：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// error codes：
+
+</span><span class="kw">use </span>std::fmt::Display;
+
+<span class="kw">fn </span>main() {
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, make_value(<span class="number">0</span>));
+    <span class="macro">println!</span>(<span class="string">"{}"</span>, make_value(<span class="number">1</span>));
+}
+
+<span class="kw">fn </span>make_value&lt;T: Display&gt;(index: usize) -&gt; T {
+    <span class="kw">match </span>index {
+        <span class="number">0 </span>=&gt; <span class="string">"Hello, World"</span>,
+        <span class="number">1 </span>=&gt; <span class="string">"Hello, World (1)"</span>,
+        <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(),
+    }
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+error+codes%EF%BC%9A%0A%0Ause+std::fmt::Display;%0A%0Afn+main()+%7B%0A++++println!(%22%7B%7D%22,+make_value(0));%0A++++println!(%22%7B%7D%22,+make_value(1));%0A%7D%0A%0Afn+make_value%3CT:+Display%3E(index:+usize)+-%3E+T+%7B%0A++++match+index+%7B%0A++++++++0+=%3E+%22Hello,+World%22,%0A++++++++1+=%3E+%22Hello,+World+(1)%22,%0A++++++++_+=%3E+panic!(),%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>修正：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::fmt::Display;
+
+<span class="kw">fn </span>make_value(index: usize) -&gt; <span class="kw">impl </span>Display {
+    <span class="kw">match </span>index {
+        <span class="number">0 </span>=&gt; <span class="string">"Hello, World"</span>,
+        <span class="number">1 </span>=&gt; <span class="string">"Hello, World (1)"</span>,
+        <span class="kw">_ </span>=&gt; <span class="macro">panic!</span>(),
+    }
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++use+std::fmt::Display;%0A++++%0A++++fn+make_value(index:+usize)+-%3E+impl+Display+%7B%0A++++++++match+index+%7B%0A++++++++++++0+=%3E+%22Hello,+World%22,%0A++++++++++++1+=%3E+%22Hello,+World+(1)%22,%0A++++++++++++_+=%3E+panic!(),%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p><code>impl Trait</code> 生命周期相关：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="comment">// error
+</span><span class="kw">fn </span>make_debug&lt;T&gt;(<span class="kw">_</span>: T) -&gt; <span class="kw">impl </span>std::fmt::Debug + <span class="lifetime">'static</span>{
+    <span class="number">42u8
+</span>}
+
+<span class="comment">// fn make_debug&lt;'a, T: 'static&gt;(_: &amp;'a T) -&gt; impl std::fmt::Debug + 'static{
+//     42u8
+// }
+
+</span><span class="kw">fn </span>test() -&gt; <span class="kw">impl </span>std::fmt::Debug {
+    <span class="kw">let </span>value = <span class="string">"value"</span>.to_string();
+    make_debug(<span class="kw-2">&amp;</span>value)
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A//+error%0Afn+main()+%7B%0A++++fn+make_debug%3CT%3E(_:+T)+-%3E+impl+std::fmt::Debug+%2B+'static%7B%0A++++++++42u8%0A++++%7D%0A++++%0A++++//+fn+make_debug%3C'a,+T:+'static%3E(_:+%26'a+T)+-%3E+impl+std::fmt::Debug+%2B+'static%7B%0A++++//+++++42u8%0A++++//+%7D%0A++++%0A++++fn+test()+-%3E+impl+std::fmt::Debug+%7B%0A++++++++let+value+=+%22value%22.to_string();%0A++++++++make_debug(%26value)%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>实际案例 - 模版模式：<a href="https://github.com/actix/actix-extras/tree/master/actix-web-httpauth">https://github.com/actix/actix-extras/tree/master/actix-web-httpauth</a></p>
+<h2 id="trait-一致性"><a class="doc-anchor" href="#trait-一致性">§</a>trait 一致性</h2>
+<p>trait 和 类型 必须有一个在本地。</p>
+</div></details></section></div></main></body></html>

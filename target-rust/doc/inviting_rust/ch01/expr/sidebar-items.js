@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["eop","fizzbuzz_if","fizzbuzz_match","semi_and_block_expr"]};

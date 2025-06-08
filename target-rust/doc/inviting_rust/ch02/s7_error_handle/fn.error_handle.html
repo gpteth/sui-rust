@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="分层错误处理"><title>error_handle in inviting_rust::ch02::s7_error_handle - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">error_<wbr>handle</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#分层错误处理" title="分层错误处理">分层错误处理</a><ul><li><a href="#option" title="Option">Option</a></li><li><a href="#result" title="Result">Result</a></li></ul></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s7_<wbr>error_<wbr>handle</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s7_error_handle</a></div><h1>Function <span class="fn">error_handle</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s7_error_handle.rs.html#166-168">Source</a> </span></div><pre class="rust item-decl"><code>pub fn error_handle()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="分层错误处理"><a class="doc-anchor" href="#分层错误处理">§</a>分层错误处理</h2>
+<p>错误处理：顾名思义，处理错误。既然要处理错误，那肯定是指开发者可以处理的情况。</p>
+<ul>
+<li>Option: 「有」与「无」</li>
+<li>Result:「对」与「错」</li>
+</ul>
+<h4 id="option"><a class="doc-anchor" href="#option">§</a>Option</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>get_shortest(names: Vec&lt;<span class="kw-2">&amp;</span>str&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
+    <span class="kw">if </span>names.len() &gt; <span class="number">0 </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>shortest = names[<span class="number">0</span>];
+        <span class="kw">for </span>name <span class="kw">in </span>names.iter() {
+            <span class="kw">if </span>name.len() &lt; shortest.len() {
+                shortest = <span class="kw-2">*</span>name;
+            }
+        }
+        <span class="prelude-val">Some</span>(shortest)
+   } <span class="kw">else </span>{
+       <span class="prelude-val">None
+   </span>}
+}
+<span class="kw">fn </span>show_shortest(names: Vec&lt;<span class="kw-2">&amp;</span>str&gt;) -&gt; <span class="kw-2">&amp;</span>str {
+   <span class="kw">match </span>get_shortest(names) {
+       <span class="prelude-val">Some</span>(shortest) =&gt; shortest,
+       <span class="prelude-val">None             </span>=&gt; <span class="string">"Not Found"</span>,
+   }
+}
+<span class="kw">fn </span>main(){
+   <span class="macro">assert_eq!</span>(show_shortest(<span class="macro">vec!</span>[<span class="string">"Uku"</span>, <span class="string">"Felipe"</span>]), <span class="string">"Uku"</span>);
+   <span class="macro">assert_eq!</span>(show_shortest(Vec::new()), <span class="string">"Not Found"</span>);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+get_shortest(names:+Vec%3C%26str%3E)+-%3E+Option%3C%26str%3E+%7B%0A++++if+names.len()+%3E+0+%7B%0A++++++++let+mut+shortest+=+names%5B0%5D;%0A++++++++for+name+in+names.iter()+%7B%0A++++++++++++if+name.len()+%3C+shortest.len()+%7B%0A++++++++++++++++shortest+=+*name;%0A++++++++++++%7D%0A++++++++%7D%0A++++++++Some(shortest)%0A+++%7D+else+%7B%0A+++++++None%0A+++%7D%0A%7D%0Afn+show_shortest(names:+Vec%3C%26str%3E)+-%3E+%26str+%7B%0A+++match+get_shortest(names)+%7B%0A+++++++Some(shortest)+=%3E+shortest,%0A+++++++None+++++++++++++=%3E+%22Not+Found%22,%0A+++%7D%0A%7D%0Afn+main()%7B%0A+++assert_eq!(show_shortest(vec!%5B%22Uku%22,+%22Felipe%22%5D),+%22Uku%22);%0A+++assert_eq!(show_shortest(Vec::new()),+%22Not+Found%22);%0A%7D&amp;edition=2018"></a></div>
+<p>使用 Match 在 「盒内」处理 Option</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>get_shortest_length(names: Vec&lt;<span class="kw-2">&amp;</span>str&gt;) -&gt; <span class="prelude-ty">Option</span>&lt;usize&gt; {
+    <span class="kw">match </span>get_shortest(names) {
+        <span class="prelude-val">Some</span>(shortest) =&gt; <span class="prelude-val">Some</span>(shortest.len()),
+        <span class="prelude-val">None             </span>=&gt; <span class="prelude-val">None</span>,
+    }
+}
+<span class="kw">fn </span>main(){
+    <span class="macro">assert_eq!</span>(get_shortest_length(<span class="macro">vec!</span>[<span class="string">"Uku"</span>,<span class="string">"Felipe"</span>]),<span class="prelude-val">Some</span>(<span class="number">3</span>));
+    <span class="macro">assert_eq!</span>(get_shortest_length(Vec::new()), <span class="prelude-val">None</span>);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+get_shortest_length(names:+Vec%3C%26str%3E)+-%3E+Option%3Cusize%3E+%7B%0A++++match+get_shortest(names)+%7B%0A++++++++Some(shortest)+=%3E+Some(shortest.len()),%0A++++++++None+++++++++++++=%3E+None,%0A++++%7D%0A%7D%0Afn+main()%7B%0A++++assert_eq!(get_shortest_length(vec!%5B%22Uku%22,%22Felipe%22%5D),Some(3));%0A++++assert_eq!(get_shortest_length(Vec::new()),+None);%0A%7D&amp;edition=2018"></a></div>
+<p>使用标准库内建组合子处理：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>double(value: f64) -&gt; f64 {
+    value * <span class="number">2.
+</span>}
+<span class="kw">fn </span>square(value: f64) -&gt; f64 {
+    value.powi(<span class="number">2 </span><span class="kw">as </span>i32)
+}
+<span class="kw">fn </span>inverse(value: f64) -&gt; f64 {
+    value * -<span class="number">1.
+</span>}
+<span class="kw">fn </span>log(value: f64) -&gt; <span class="prelude-ty">Option</span>&lt;f64&gt; {
+   <span class="kw">match </span>value.log2() {
+       x <span class="kw">if </span>x.is_normal() =&gt; <span class="prelude-val">Some</span>(x),
+       <span class="kw">_                      </span>=&gt; <span class="prelude-val">None
+   </span>}
+}
+<span class="kw">fn </span>sqrt(value: f64) -&gt; <span class="prelude-ty">Option</span>&lt;f64&gt; {
+   <span class="kw">match </span>value.sqrt() {
+       x <span class="kw">if </span>x.is_normal() =&gt; <span class="prelude-val">Some</span>(x),
+       <span class="kw">_                      </span>=&gt; <span class="prelude-val">None
+   </span>}
+}
+<span class="kw">fn </span>main () {
+   <span class="kw">let </span>number: f64 = <span class="number">20.</span>;
+   <span class="kw">let </span>result = Option::from(number)
+       .map(inverse).map(double).map(inverse)
+       .and_then(log).map(square).and_then(sqrt);
+   <span class="kw">match </span>result {
+       <span class="prelude-val">Some</span>(x) =&gt; <span class="macro">println!</span>(<span class="string">"Result was {}."</span>, x),
+       <span class="prelude-val">None    </span>=&gt; <span class="macro">println!</span>(<span class="string">"This failed."</span>)
+   }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+double(value:+f64)+-%3E+f64+%7B%0A++++value+*+2.%0A%7D%0Afn+square(value:+f64)+-%3E+f64+%7B%0A++++value.powi(2+as+i32)%0A%7D%0Afn+inverse(value:+f64)+-%3E+f64+%7B%0A++++value+*+-1.%0A%7D%0Afn+log(value:+f64)+-%3E+Option%3Cf64%3E+%7B%0A+++match+value.log2()+%7B%0A+++++++x+if+x.is_normal()+=%3E+Some(x),%0A+++++++_++++++++++++++++++++++=%3E+None%0A+++%7D%0A%7D%0Afn+sqrt(value:+f64)+-%3E+Option%3Cf64%3E+%7B%0A+++match+value.sqrt()+%7B%0A+++++++x+if+x.is_normal()+=%3E+Some(x),%0A+++++++_++++++++++++++++++++++=%3E+None%0A+++%7D%0A%7D%0Afn+main+()+%7B%0A+++let+number:+f64+=+20.;%0A+++let+result+=+Option::from(number)%0A+++++++.map(inverse).map(double).map(inverse)%0A+++++++.and_then(log).map(square).and_then(sqrt);%0A+++match+result+%7B%0A+++++++Some(x)+=%3E+println!(%22Result+was+%7B%7D.%22,+x),%0A+++++++None++++=%3E+println!(%22This+failed.%22)%0A+++%7D%0A%7D&amp;edition=2018"></a></div>
+<h4 id="result"><a class="doc-anchor" href="#result">§</a>Result</h4>
+<ul>
+<li>Error trait:<a href="https://doc.rust-lang.org/stable/std/error/trait.Error.html">https://doc.rust-lang.org/stable/std/error/trait.Error.html</a></li>
+<li>Result Error Handle : [read-sum crate]</li>
+<li><code>?</code> and <a href="https://doc.rust-lang.org/stable/std/ops/trait.Try.html">std::ops::Try</a></li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::num::ParseIntError;
+<span class="comment">// fn square(number_str: &amp;str) -&gt; Result&lt;i32, ParseIntError&gt;
+// {
+//    number_str.parse::&lt;i32&gt;().map(|n| n.pow(2))
+// }
+</span><span class="kw">type </span>ParseResult&lt;T&gt; = <span class="prelude-ty">Result</span>&lt;T, ParseIntError&gt;;
+<span class="kw">fn </span>square(number_str: <span class="kw-2">&amp;</span>str) -&gt; ParseResult&lt;i32&gt;
+{
+    number_str.parse::&lt;i32&gt;().map(|n| n.pow(<span class="number">2</span>))
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">match </span>square(<span class="string">"10"</span>) {
+        <span class="prelude-val">Ok</span>(n) =&gt; <span class="macro">assert_eq!</span>(n, <span class="number">100</span>),
+        <span class="prelude-val">Err</span>(err) =&gt; <span class="macro">println!</span>(<span class="string">"Error: {:?}"</span>, err),
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::num::ParseIntError;%0A//+fn+square(number_str:+%26str)+-%3E+Result%3Ci32,+ParseIntError%3E%0A//+%7B%0A//++++number_str.parse::%3Ci32%3E().map(%7Cn%7C+n.pow(2))%0A//+%7D%0Atype+ParseResult%3CT%3E+=+Result%3CT,+ParseIntError%3E;%0Afn+square(number_str:+%26str)+-%3E+ParseResult%3Ci32%3E%0A%7B%0A++++number_str.parse::%3Ci32%3E().map(%7Cn%7C+n.pow(2))%0A%7D%0Afn+main()+%7B%0A++++match+square(%2210%22)+%7B%0A++++++++Ok(n)+=%3E+assert_eq!(n,+100),%0A++++++++Err(err)+=%3E+println!(%22Error:+%7B:?%7D%22,+err),%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

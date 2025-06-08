@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="动态分发"><title>trait_dyn_dispatch in inviting_rust::ch02::s5_trait_and_generic - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">trait_<wbr>dyn_<wbr>dispatch</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#动态分发" title="动态分发">动态分发</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s5_<wbr>trait_<wbr>and_<wbr>generic</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s5_trait_and_generic</a></div><h1>Function <span class="fn">trait_dyn_dispatch</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s5_trait_and_generic.rs.html#183-185">Source</a> </span></div><pre class="rust item-decl"><code>pub fn trait_dyn_dispatch()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="动态分发"><a class="doc-anchor" href="#动态分发">§</a>动态分发</h2>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>## <span class="kw">trait </span>对象
+
+用泛型模拟 Class
+
+```rust
+
+<span class="attr">#![allow(unused)]
+
+</span><span class="kw">use </span>core::any::{Any,TypeId};
+<span class="kw">use </span>std::sync::Arc;
+
+<span class="doccomment">/// Class definition
+</span><span class="kw">struct </span>Class {
+    <span class="doccomment">/// The name of the class
+    </span>name: String,
+    <span class="doccomment">/// The corresponding Rust type
+    </span>type_id: TypeId,
+}
+
+<span class="kw">impl </span>Class {
+    <span class="doccomment">/// Create a new class definition for the type `T`
+    </span><span class="kw">fn </span>new&lt;T: <span class="lifetime">'static</span>&gt;() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            name: std::any::type_name::&lt;T&gt;().to_string(),
+            type_id: TypeId::of::&lt;T&gt;(),
+        }
+    }
+}
+
+<span class="doccomment">/// An instance of a class
+</span><span class="kw">struct </span>Instance {
+    inner: Arc&lt;<span class="kw">dyn </span>Any&gt;, <span class="comment">// `Arc` because we don't need/want mutability
+</span>}
+
+<span class="kw">impl </span>Instance {
+    <span class="doccomment">/// Construct a new `Instance` from a type that
+    /// implements `Any` (i.e. any sized type).
+    </span><span class="kw">fn </span>new(obj: <span class="kw">impl </span>Any) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            inner: Arc::new(obj)
+        }
+    }
+}
+
+<span class="kw">impl </span>Instance {
+    <span class="doccomment">/// Check whether this is an instance of the provided class
+    </span><span class="kw">fn </span>instance_of(<span class="kw-2">&amp;</span><span class="self">self</span>, class: <span class="kw-2">&amp;</span>Class) -&gt; bool {
+        <span class="comment">// self.inner.type_id() == class.type_id
+        </span><span class="self">self</span>.inner.as_ref().type_id() == class.type_id
+    }
+}
+
+<span class="kw">struct </span>Foo {}
+<span class="kw">struct </span>Bar {}
+
+<span class="kw">fn </span>main(){
+
+
+    <span class="kw">let </span>foo_class: Class = Class::new::&lt;Foo&gt;();
+    <span class="kw">let </span>bar_class: Class = Class::new::&lt;Bar&gt;();
+    <span class="kw">let </span>foo_instance: Instance = Instance::new(Foo {});
+
+    <span class="macro">assert!</span>(foo_instance.instance_of(<span class="kw-2">&amp;</span>foo_class));
+    <span class="macro">assert!</span>(!foo_instance.instance_of(<span class="kw-2">&amp;</span>bar_class));
+}
+```</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++%23%23+trait+%E5%AF%B9%E8%B1%A1%0A++++%0A++++%E7%94%A8%E6%B3%9B%E5%9E%8B%E6%A8%A1%E6%8B%9F+Class%0A++++%0A++++%60%60%60rust%0A++++%0A++++%23!%5Ballow(unused)%5D%0A++++%0A++++use+core::any::%7BAny,TypeId%7D;%0A++++use+std::sync::Arc;%0A++++%0A++++///+Class+definition%0A++++struct+Class+%7B%0A++++++++///+The+name+of+the+class%0A++++++++name:+String,%0A++++++++///+The+corresponding+Rust+type%0A++++++++type_id:+TypeId,%0A++++%7D%0A++++%0A++++impl+Class+%7B%0A++++++++///+Create+a+new+class+definition+for+the+type+%60T%60%0A++++++++fn+new%3CT:+'static%3E()+-%3E+Self+%7B%0A++++++++++++Self+%7B%0A++++++++++++++++name:+std::any::type_name::%3CT%3E().to_string(),%0A++++++++++++++++type_id:+TypeId::of::%3CT%3E(),%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A++++%0A++++///+An+instance+of+a+class%0A++++struct+Instance+%7B%0A++++++++inner:+Arc%3Cdyn+Any%3E,+//+%60Arc%60+because+we+don't+need/want+mutability%0A++++%7D%0A++++%0A++++impl+Instance+%7B%0A++++++++///+Construct+a+new+%60Instance%60+from+a+type+that%0A++++++++///+implements+%60Any%60+(i.e.+any+sized+type).%0A++++++++fn+new(obj:+impl+Any)+-%3E+Self+%7B%0A++++++++++++Self+%7B%0A++++++++++++++++inner:+Arc::new(obj)%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A++++%0A++++impl+Instance+%7B%0A++++++++///+Check+whether+this+is+an+instance+of+the+provided+class%0A++++++++fn+instance_of(%26self,+class:+%26Class)+-%3E+bool+%7B%0A++++++++++++//+self.inner.type_id()+==+class.type_id%0A++++++++++++self.inner.as_ref().type_id()+==+class.type_id%0A++++++++%7D%0A++++%7D%0A++++%0A++++struct+Foo+%7B%7D%0A++++struct+Bar+%7B%7D%0A++++%0A++++fn+main()%7B%0A++++%0A++++%0A++++++++let+foo_class:+Class+=+Class::new::%3CFoo%3E();%0A++++++++let+bar_class:+Class+=+Class::new::%3CBar%3E();%0A++++++++let+foo_instance:+Instance+=+Instance::new(Foo+%7B%7D);%0A++++%0A++++++++assert!(foo_instance.instance_of(%26foo_class));%0A++++++++assert!(!foo_instance.instance_of(%26bar_class));%0A++++%7D%0A++++%60%60%60%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

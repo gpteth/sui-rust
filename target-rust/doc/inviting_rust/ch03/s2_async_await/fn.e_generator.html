@@ -1,0 +1,374 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="异步实现细节：生成器 与 协程"><title>e_generator in inviting_rust::ch03::s2_async_await - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">e_<wbr>generator</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#异步实现细节生成器-与-协程" title="异步实现细节：生成器 与 协程">异步实现细节：生成器 与 协程</a><ul><li><a href="#历史" title="历史">历史</a></li><li><a href="#asyncawait-语法介绍" title="async/await 语法介绍">async/await 语法介绍</a></li><li><a href="#生成器" title="生成器">生成器</a></li></ul></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch03::<wbr>s2_<wbr>async_<wbr>await</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch03</a>::<wbr><a href="index.html">s2_async_await</a></div><h1>Function <span class="fn">e_generator</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch03/s2_async_await.rs.html#621">Source</a> </span></div><pre class="rust item-decl"><code>pub fn e_generator()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="异步实现细节生成器-与-协程"><a class="doc-anchor" href="#异步实现细节生成器-与-协程">§</a>异步实现细节：生成器 与 协程</h2><h3 id="历史"><a class="doc-anchor" href="#历史">§</a>历史</h3>
+<p>处理异步事件的三种方式：</p>
+<ul>
+<li>Callback</li>
+<li>Promise/Future</li>
+<li>async/await</li>
+</ul>
+<p>async/await 是目前体验最好的方式，Rust 要支持它并不容易。</p>
+<h3 id="asyncawait-语法介绍"><a class="doc-anchor" href="#asyncawait-语法介绍">§</a>async/await 语法介绍</h3>
+<p>参考：<a href="https://rust-lang.github.io/async-book/01_getting_started/01_chapter.html">Asynchronous Programming in Rust</a></p>
+<p><code>async</code> 两种用法：<code>async fn </code> 函数 和 <code>async {}</code> 块。</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// async 函数，真正会返回 `Future&lt;Output = u8&gt;`，而不是表面看上去的 `u8`
+</span><span class="kw">async fn </span>foo() -&gt; u8 { <span class="number">5 </span>}
+
+<span class="comment">// async 块用法，返回 `impl Future&lt;Output = u8&gt;`
+</span><span class="kw">fn </span>bar() -&gt; <span class="kw">impl </span>Future&lt;Output = u8&gt; {
+    <span class="comment">// 这里 `async` 块返回  `impl Future&lt;Output = u8&gt;`
+    </span><span class="kw">async </span>{
+        <span class="kw">let </span>x: u8 = foo().<span class="kw">await</span>;
+        x + <span class="number">5
+    </span>}
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+async+%E5%87%BD%E6%95%B0%EF%BC%8C%E7%9C%9F%E6%AD%A3%E4%BC%9A%E8%BF%94%E5%9B%9E+%60Future%3COutput+=+u8%3E%60%EF%BC%8C%E8%80%8C%E4%B8%8D%E6%98%AF%E8%A1%A8%E9%9D%A2%E7%9C%8B%E4%B8%8A%E5%8E%BB%E7%9A%84+%60u8%60%0Afn+main()+%7B%0A++++async+fn+foo()+-%3E+u8+%7B+5+%7D%0A++++%0A++++//+async+%E5%9D%97%E7%94%A8%E6%B3%95%EF%BC%8C%E8%BF%94%E5%9B%9E+%60impl+Future%3COutput+=+u8%3E%60%0A++++fn+bar()+-%3E+impl+Future%3COutput+=+u8%3E+%7B%0A++++++++//+%E8%BF%99%E9%87%8C+%60async%60+%E5%9D%97%E8%BF%94%E5%9B%9E++%60impl+Future%3COutput+=+u8%3E%60%0A++++++++async+%7B%0A++++++++++++let+x:+u8+=+foo().await;%0A++++++++++++x+%2B+5%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p><code>await</code> 将暂停当前函数的执行，直到执行者将 Future 结束为止。这为其他 Future 任务提供了计算的机会。</p>
+<h3 id="生成器"><a class="doc-anchor" href="#生成器">§</a>生成器</h3>
+<p>Future 底层实现依赖于 生成器。 <code>async/await</code> 对应底层生成器 <code>resume/yield</code> 。</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![feature(generators, generator_trait)]
+</span><span class="kw">use </span>std::ops::Generator;
+<span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>gen = || {
+        <span class="kw">yield </span><span class="number">1</span>;
+        <span class="kw">yield </span><span class="number">2</span>;
+        <span class="kw">yield </span><span class="number">3</span>;
+        <span class="kw">return </span><span class="number">4</span>;
+    };
+    <span class="comment">// for _ in 0..4 {
+    //     // 为了给嵌入式支持异步，多传入了一个空的unit给resume方法
+    //     let c = Pin::new(&amp;mut gen).resume(());
+    //     println!("{:?}", c);
+    // }
+
+
+    </span><span class="kw">let </span>c = Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(());
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c);
+    <span class="kw">let </span>c = Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(());
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c);
+    <span class="kw">let </span>c = Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(());
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c);
+    <span class="kw">let </span>c = Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(());
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c);
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(generators,+generator_trait)%5D%0Ause+std::ops::Generator;%0Ause+std::pin::Pin;%0A%0Afn+main()+%7B%0A++++let+mut+gen+=+%7C%7C+%7B%0A++++++++yield+1;%0A++++++++yield+2;%0A++++++++yield+3;%0A++++++++return+4;%0A++++%7D;%0A++++//+for+_+in+0..4+%7B%0A++++//+++++//+%E4%B8%BA%E4%BA%86%E7%BB%99%E5%B5%8C%E5%85%A5%E5%BC%8F%E6%94%AF%E6%8C%81%E5%BC%82%E6%AD%A5%EF%BC%8C%E5%A4%9A%E4%BC%A0%E5%85%A5%E4%BA%86%E4%B8%80%E4%B8%AA%E7%A9%BA%E7%9A%84unit%E7%BB%99resume%E6%96%B9%E6%B3%95%0A++++//+++++let+c+=+Pin::new(%26mut+gen).resume(());%0A++++//+++++println!(%22%7B:?%7D%22,+c);%0A++++//+%7D%0A%0A%0A++++let+c+=+Pin::new(%26mut+gen).resume(());%0A++++println!(%22%7B:?%7D%22,+c);%0A++++let+c+=+Pin::new(%26mut+gen).resume(());%0A++++println!(%22%7B:?%7D%22,+c);%0A++++let+c+=+Pin::new(%26mut+gen).resume(());%0A++++println!(%22%7B:?%7D%22,+c);%0A++++let+c+=+Pin::new(%26mut+gen).resume(());%0A++++println!(%22%7B:?%7D%22,+c);%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>生成等价代码：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![feature(generators, generator_trait)]
+</span><span class="kw">use </span>std::ops::{Generator, GeneratorState};
+<span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">enum </span>__Gen {
+    <span class="comment">// (0) 初始状态
+    </span>Start,
+    <span class="comment">// (1) resume方法执行以后
+    </span>State1(State1),
+    <span class="comment">// (2) resume方法执行以后
+    </span>State2(State2),
+    <span class="comment">// (3) resume方法执行以后
+    </span>State3(State3),
+    <span class="comment">// (4) resume方法执行以后，正好完成
+    </span>Done
+}
+
+
+<span class="kw">struct </span>State1 { x: u64 }
+<span class="kw">struct </span>State2 { x: u64 }
+<span class="kw">struct </span>State3 { x: u64 }
+
+<span class="kw">impl </span>Generator <span class="kw">for </span>__Gen {
+    <span class="kw">type </span>Yield = u64;
+    <span class="kw">type </span>Return = u64;
+
+    <span class="kw">fn </span>resume(<span class="self">self</span>: Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;, <span class="kw">_</span>: ()) -&gt; GeneratorState&lt;u64, u64&gt; {
+        <span class="kw">let </span>mut_ref = <span class="self">self</span>.get_mut();
+        <span class="kw">match </span>std::mem::replace(mut_ref, __Gen::Done) {
+            __Gen::Start =&gt; {
+                <span class="kw-2">*</span>mut_ref = __Gen::State1(State1{x: <span class="number">1</span>});
+                GeneratorState::Yielded(<span class="number">1</span>)
+            }
+            __Gen::State1(State1{x: <span class="number">1</span>}) =&gt; {
+                <span class="kw-2">*</span>mut_ref  = __Gen::State2(State2{x: <span class="number">2</span>});
+                GeneratorState::Yielded(<span class="number">2</span>)
+        }
+            __Gen::State2(State2{x: <span class="number">2</span>}) =&gt; {
+                <span class="kw-2">*</span>mut_ref = __Gen::State3(State3{x: <span class="number">3</span>});
+                GeneratorState::Yielded(<span class="number">3</span>)
+            }
+            __Gen::State3(State3{x: <span class="number">3</span>}) =&gt; {
+                <span class="kw-2">*</span>mut_ref  = __Gen::Done;
+                GeneratorState::Complete(<span class="number">4</span>)
+            }
+            <span class="kw">_ </span>=&gt; {
+                <span class="macro">panic!</span>(<span class="string">"generator resumed after completion"</span>)
+            }
+        }
+    }
+}
+
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span><span class="kw-2">mut </span>gen = {
+        __Gen::Start
+    };
+
+    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">4 </span>{
+        <span class="macro">println!</span>(<span class="string">"{:?}"</span>, <span class="kw">unsafe</span>{ Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(())});
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(generators,+generator_trait)%5D%0A%23!%5Ballow(unused)%5D%0Ause+std::ops::%7BGenerator,+GeneratorState%7D;%0Ause+std::pin::Pin;%0A%0Aenum+__Gen+%7B%0A++++//+(0)+%E5%88%9D%E5%A7%8B%E7%8A%B6%E6%80%81%0A++++Start,%0A++++//+(1)+resume%E6%96%B9%E6%B3%95%E6%89%A7%E8%A1%8C%E4%BB%A5%E5%90%8E%0A++++State1(State1),%0A++++//+(2)+resume%E6%96%B9%E6%B3%95%E6%89%A7%E8%A1%8C%E4%BB%A5%E5%90%8E%0A++++State2(State2),%0A++++//+(3)+resume%E6%96%B9%E6%B3%95%E6%89%A7%E8%A1%8C%E4%BB%A5%E5%90%8E%0A++++State3(State3),%0A++++//+(4)+resume%E6%96%B9%E6%B3%95%E6%89%A7%E8%A1%8C%E4%BB%A5%E5%90%8E%EF%BC%8C%E6%AD%A3%E5%A5%BD%E5%AE%8C%E6%88%90%0A++++Done%0A%7D%0A%0A%0Astruct+State1+%7B+x:+u64+%7D%0Astruct+State2+%7B+x:+u64+%7D%0Astruct+State3+%7B+x:+u64+%7D%0A%0Aimpl+Generator+for+__Gen+%7B%0A++++type+Yield+=+u64;%0A++++type+Return+=+u64;%0A%0A++++fn+resume(self:+Pin%3C%26mut+Self%3E,+_:+())+-%3E+GeneratorState%3Cu64,+u64%3E+%7B%0A++++++++let+mut_ref+=+self.get_mut();%0A++++++++match+std::mem::replace(mut_ref,+__Gen::Done)+%7B%0A++++++++++++__Gen::Start+=%3E+%7B%0A++++++++++++++++*mut_ref+=+__Gen::State1(State1%7Bx:+1%7D);%0A++++++++++++++++GeneratorState::Yielded(1)%0A++++++++++++%7D%0A++++++++++++__Gen::State1(State1%7Bx:+1%7D)+=%3E+%7B%0A++++++++++++++++*mut_ref++=+__Gen::State2(State2%7Bx:+2%7D);%0A++++++++++++++++GeneratorState::Yielded(2)%0A++++++++%7D%0A++++++++++++__Gen::State2(State2%7Bx:+2%7D)+=%3E+%7B%0A++++++++++++++++*mut_ref+=+__Gen::State3(State3%7Bx:+3%7D);%0A++++++++++++++++GeneratorState::Yielded(3)%0A++++++++++++%7D%0A++++++++++++__Gen::State3(State3%7Bx:+3%7D)+=%3E+%7B%0A++++++++++++++++*mut_ref++=+__Gen::Done;%0A++++++++++++++++GeneratorState::Complete(4)%0A++++++++++++%7D%0A++++++++++++_+=%3E+%7B%0A++++++++++++++++panic!(%22generator+resumed+after+completion%22)%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A%7D%0A%0Afn+main()%7B%0A++++let+mut+gen+=+%7B%0A++++++++__Gen::Start%0A++++%7D;%0A%0A++++for+_+in+0..4+%7B%0A++++++++println!(%22%7B:?%7D%22,+unsafe%7B+Pin::new(%26mut+gen).resume(())%7D);%0A++++%7D%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>生成器基本用法：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#![allow(unused)]
+#![feature(generators, generator_trait)]
+</span><span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">use </span>std::ops::Generator;
+
+<span class="kw">pub fn </span>up_to(limit: u64) -&gt; <span class="kw">impl </span>Generator&lt;Yield = u64, Return = u64&gt; {
+    <span class="kw">move </span>|| {
+        <span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..limit {
+            <span class="kw">yield </span>x;
+        }
+        <span class="kw">return </span>limit;
+    }
+}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span>a = <span class="number">10</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>b = up_to(a);
+    <span class="kw">unsafe </span>{
+        <span class="kw">for _ in </span><span class="number">0</span>..=<span class="number">10</span>{
+            <span class="kw">let </span>c = Pin::new(<span class="kw-2">&amp;mut </span>b).resume(());
+            <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c);
+        }
+    }
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A%23!%5Bfeature(generators,+generator_trait)%5D%0A%23!%5Ballow(unused)%5D%0Ause+std::pin::Pin;%0A%0Ause+std::ops::Generator;%0A%0Apub+fn+up_to(limit:+u64)+-%3E+impl+Generator%3CYield+=+u64,+Return+=+u64%3E+%7B%0A++++move+%7C%7C+%7B%0A++++++++for+x+in+0..limit+%7B%0A++++++++++++yield+x;%0A++++++++%7D%0A++++++++return+limit;%0A++++%7D%0A%7D%0Afn+main()%7B%0A++++let+a+=+10;%0A++++let+mut+b+=+up_to(a);%0A++++unsafe+%7B%0A++++++++for+_+in+0..=10%7B%0A++++++++++++let+c+=+Pin::new(%26mut+b).resume(());%0A++++++++++++println!(%22%7B:?%7D%22,+c);%0A++++++++%7D%0A++++%7D%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>生成器变身为迭代器：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![feature(generators, generator_trait)]
+</span><span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">use </span>std::ops::{Generator, GeneratorState};
+
+<span class="kw">pub fn </span>up_to() -&gt; <span class="kw">impl </span>Generator&lt;Yield = u64, Return = ()&gt; {
+    <span class="kw">move </span>|| {
+        <span class="kw">let </span><span class="kw-2">mut </span>x = <span class="number">0</span>;
+        <span class="kw">loop </span>{
+            x += <span class="number">1</span>;
+            <span class="kw">yield </span>x;
+        }
+        <span class="kw">return </span>();
+    }
+}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span><span class="kw-2">mut </span>gen = up_to();
+    <span class="kw">unsafe </span>{
+    <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">10</span>{
+        <span class="kw">match </span>Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(()) {
+            GeneratorState::Yielded(i) =&gt; <span class="macro">println!</span>(<span class="string">"{:?}"</span>, i),
+            <span class="kw">_ </span>=&gt; <span class="macro">println!</span>(<span class="string">"Completed"</span>),
+        }
+    }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(generators,+generator_trait)%5D%0A%23!%5Ballow(unused)%5D%0Ause+std::pin::Pin;%0A%0Ause+std::ops::%7BGenerator,+GeneratorState%7D;%0A%0Apub+fn+up_to()+-%3E+impl+Generator%3CYield+=+u64,+Return+=+()%3E+%7B%0A++++move+%7C%7C+%7B%0A++++++++let+mut+x+=+0;%0A++++++++loop+%7B%0A++++++++++++x+%2B=+1;%0A++++++++++++yield+x;%0A++++++++%7D%0A++++++++return+();%0A++++%7D%0A%7D%0Afn+main()%7B%0A++++let+mut+gen+=+up_to();%0A++++unsafe+%7B%0A++++for+_+in+0..10%7B%0A++++++++match+Pin::new(%26mut+gen).resume(())+%7B%0A++++++++++++GeneratorState::Yielded(i)+=%3E+println!(%22%7B:?%7D%22,+i),%0A++++++++++++_+=%3E+println!(%22Completed%22),%0A++++++++%7D%0A++++%7D%0A++++%7D%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>生成器变身为 Future:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="attr">#![allow(unused)]
+#![feature(generators, generator_trait)]
+
+</span><span class="kw">use </span>std::ops::{Generator, GeneratorState};
+<span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">pub fn </span>up_to(limit: u64) -&gt; <span class="kw">impl </span>Generator&lt;Yield = (), Return = <span class="prelude-ty">Result</span>&lt;u64, ()&gt;&gt; {
+    <span class="kw">move </span>|| {
+        <span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..limit {
+            <span class="kw">yield </span>();
+        }
+        <span class="kw">return </span><span class="prelude-val">Ok</span>(limit);
+    }
+}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span>limit = <span class="number">2</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>gen = up_to(limit);
+    <span class="kw">unsafe </span>{
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..=limit{
+        <span class="kw">match </span>Pin::new(<span class="kw-2">&amp;mut </span>gen).resume(()) {
+            GeneratorState::Yielded(v) =&gt; <span class="macro">println!</span>(<span class="string">"resume {:?} : Pending"</span>, i),
+            GeneratorState::Complete(v) =&gt; <span class="macro">println!</span>(<span class="string">"resume {:?} : Ready"</span>, i),
+        }
+    }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0A%23!%5Bfeature(generators,+generator_trait)%5D%0A%0A%23!%5Ballow(unused)%5D%0Ause+std::ops::%7BGenerator,+GeneratorState%7D;%0Ause+std::pin::Pin;%0A%0Apub+fn+up_to(limit:+u64)+-%3E+impl+Generator%3CYield+=+(),+Return+=+Result%3Cu64,+()%3E%3E+%7B%0A++++move+%7C%7C+%7B%0A++++++++for+x+in+0..limit+%7B%0A++++++++++++yield+();%0A++++++++%7D%0A++++++++return+Ok(limit);%0A++++%7D%0A%7D%0Afn+main()%7B%0A++++let+limit+=+2;%0A++++let+mut+gen+=+up_to(limit);%0A++++unsafe+%7B%0A++++for+i+in+0..=limit%7B%0A++++++++match+Pin::new(%26mut+gen).resume(())+%7B%0A++++++++++++GeneratorState::Yielded(v)+=%3E+println!(%22resume+%7B:?%7D+:+Pending%22,+i),%0A++++++++++++GeneratorState::Complete(v)+=%3E+println!(%22resume+%7B:?%7D+:+Ready%22,+i),%0A++++++++%7D%0A++++%7D%0A++++%7D%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>跨 yield 借用会报错：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![feature(generators, generator_trait)]
+
+</span><span class="kw">use </span>std::ops::Generator;
+<span class="kw">use </span>std::pin::Pin;
+
+<span class="kw">pub fn </span>up_to(limit: u64) -&gt; <span class="kw">impl </span>Generator&lt;Yield = u64, Return = u64&gt; {
+    <span class="kw">move </span>|| {
+        <span class="kw">let </span>a = <span class="number">5</span>;
+        <span class="kw">let </span>ref_a = <span class="kw-2">&amp;</span>a;
+        <span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..limit {
+            <span class="kw">yield </span>x;
+            <span class="kw">if </span>x == <span class="number">5</span>{
+                <span class="kw">yield </span><span class="kw-2">*</span>ref_a;
+            }
+        }
+        <span class="kw">return </span>limit;
+    }
+}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span>a = <span class="number">10</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>b = up_to(a);
+    <span class="kw">unsafe </span>{
+        <span class="kw">for _ in </span><span class="number">0</span>..=<span class="number">10</span>{
+            <span class="kw">let </span>c = Pin::new(<span class="kw-2">&amp;mut </span>b).resume(());
+            <span class="macro">println!</span>(<span class="string">"{:?}"</span>, c);
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(generators,+generator_trait)%5D%0A%0A%23!%5Ballow(unused)%5D%0Ause+std::ops::Generator;%0Ause+std::pin::Pin;%0A%0Apub+fn+up_to(limit:+u64)+-%3E+impl+Generator%3CYield+=+u64,+Return+=+u64%3E+%7B%0A++++move+%7C%7C+%7B%0A++++++++let+a+=+5;%0A++++++++let+ref_a+=+%26a;%0A++++++++for+x+in+0..limit+%7B%0A++++++++++++yield+x;%0A++++++++++++if+x+==+5%7B%0A++++++++++++++++yield+*ref_a;%0A++++++++++++%7D%0A++++++++%7D%0A++++++++return+limit;%0A++++%7D%0A%7D%0Afn+main()%7B%0A++++let+a+=+10;%0A++++let+mut+b+=+up_to(a);%0A++++unsafe+%7B%0A++++++++for+_+in+0..=10%7B%0A++++++++++++let+c+=+Pin::new(%26mut+b).resume(());%0A++++++++++++println!(%22%7B:?%7D%22,+c);%0A++++++++%7D%0A++++%7D%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>自引用结构：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![feature(generators, generator_trait)]
+</span><span class="kw">use </span>std::ops::Generator;
+<span class="kw">use </span>std::pin::Pin;
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span><span class="kw-2">mut </span>generator = <span class="kw">move </span>|| {
+        <span class="kw">let </span>to_borrow = String::from(<span class="string">"Hello"</span>);
+        <span class="kw">let </span>borrowed = <span class="kw-2">&amp;</span>to_borrow;
+        <span class="comment">// error[E0626]: borrow may still be in use when generator yields
+        </span><span class="kw">yield </span>borrowed.len();
+        <span class="macro">println!</span>(<span class="string">"{} world!"</span>, borrowed);
+    };
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(generators,+generator_trait)%5D%0Ause+std::ops::Generator;%0Ause+std::pin::Pin;%0Afn+main()%7B%0A++++let+mut+generator+=+move+%7C%7C+%7B%0A++++++++let+to_borrow+=+String::from(%22Hello%22);%0A++++++++let+borrowed+=+%26to_borrow;%0A++++++++//+error%5BE0626%5D:+borrow+may+still+be+in+use+when+generator+yields%0A++++++++yield+borrowed.len();%0A++++++++println!(%22%7B%7D+world!%22,+borrowed);%0A++++%7D;%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>模拟底层实现 generator ：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![feature(never_type)] </span><span class="comment">// Force nightly compiler to be used in playground
+// by betting on it's true that this type is named after it's stabilization date...
+</span><span class="kw">pub fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>gen = GeneratorA::start();
+    <span class="kw">let </span><span class="kw-2">mut </span>gen2 = GeneratorA::start();
+
+    <span class="kw">if let </span>GeneratorState::Yielded(n) = gen.resume() {
+        <span class="macro">println!</span>(<span class="string">"Got value {}"</span>, n);
+    }
+
+    <span class="comment">// std::mem::swap(&amp;mut gen, &amp;mut gen2); // &lt;--- Big problem!
+
+    </span><span class="kw">if let </span>GeneratorState::Yielded(n) = gen2.resume() {
+        <span class="macro">println!</span>(<span class="string">"Got value {}"</span>, n);
+    }
+
+    <span class="comment">// This would now start gen2 since we swapped them.
+    </span><span class="kw">if let </span>GeneratorState::Complete(()) = gen.resume() {
+        ()
+    };
+
+    <span class="kw">if let </span>GeneratorState::Complete(()) = gen2.resume() {
+        ()
+    };
+}
+<span class="kw">enum </span>GeneratorState&lt;Y, R&gt; {
+    Yielded(Y),
+    Complete(R),
+}
+
+<span class="kw">trait </span>Generator {
+    <span class="kw">type </span>Yield;
+    <span class="kw">type </span>Return;
+    <span class="kw">fn </span>resume(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; GeneratorState&lt;<span class="self">Self</span>::Yield, <span class="self">Self</span>::Return&gt;;
+}
+
+<span class="kw">enum </span>GeneratorA {
+    Enter,
+    Yield1 {
+        to_borrow: String,
+        borrowed: <span class="kw-2">*const </span>String,
+    },
+    Exit,
+}
+
+<span class="kw">impl </span>GeneratorA {
+    <span class="kw">fn </span>start() -&gt; <span class="self">Self </span>{
+        GeneratorA::Enter
+    }
+}
+<span class="kw">impl </span>Generator <span class="kw">for </span>GeneratorA {
+    <span class="kw">type </span>Yield = usize;
+    <span class="kw">type </span>Return = ();
+    <span class="kw">fn </span>resume(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; GeneratorState&lt;<span class="self">Self</span>::Yield, <span class="self">Self</span>::Return&gt; {
+            <span class="kw">match </span><span class="self">self </span>{
+            GeneratorA::Enter =&gt; {
+                <span class="kw">let </span>to_borrow = String::from(<span class="string">"Hello"</span>);
+                <span class="kw">let </span>borrowed = <span class="kw-2">&amp;</span>to_borrow;
+                <span class="kw">let </span>res = borrowed.len();
+                <span class="kw-2">*</span><span class="self">self </span>= GeneratorA::Yield1 {to_borrow, borrowed: std::ptr::null()};
+
+                <span class="comment">// We set the self-reference here
+                </span><span class="kw">if let </span>GeneratorA::Yield1 {to_borrow, borrowed} = <span class="self">self </span>{
+                    <span class="kw-2">*</span>borrowed = to_borrow;
+                }
+
+                GeneratorState::Yielded(res)
+            }
+
+            GeneratorA::Yield1 {borrowed, ..} =&gt; {
+                <span class="kw">let </span>borrowed: <span class="kw-2">&amp;</span>String = <span class="kw">unsafe </span>{<span class="kw-2">&amp;**</span>borrowed};
+                <span class="macro">println!</span>(<span class="string">"{} world"</span>, borrowed);
+                <span class="kw-2">*</span><span class="self">self </span>= GeneratorA::Exit;
+                GeneratorState::Complete(())
+            }
+            GeneratorA::Exit =&gt; <span class="macro">panic!</span>(<span class="string">"Can't advance an exited generator!"</span>),
+        }
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(never_type)%5D+//+Force+nightly+compiler+to+be+used+in+playground%0A//+by+betting+on+it's+true+that+this+type+is+named+after+it's+stabilization+date...%0A%23!%5Ballow(unused)%5D%0Apub+fn+main()+%7B%0A++++let+mut+gen+=+GeneratorA::start();%0A++++let+mut+gen2+=+GeneratorA::start();%0A%0A++++if+let+GeneratorState::Yielded(n)+=+gen.resume()+%7B%0A++++++++println!(%22Got+value+%7B%7D%22,+n);%0A++++%7D%0A%0A++++//+std::mem::swap(%26mut+gen,+%26mut+gen2);+//+%3C---+Big+problem!%0A%0A++++if+let+GeneratorState::Yielded(n)+=+gen2.resume()+%7B%0A++++++++println!(%22Got+value+%7B%7D%22,+n);%0A++++%7D%0A%0A++++//+This+would+now+start+gen2+since+we+swapped+them.%0A++++if+let+GeneratorState::Complete(())+=+gen.resume()+%7B%0A++++++++()%0A++++%7D;%0A%0A++++if+let+GeneratorState::Complete(())+=+gen2.resume()+%7B%0A++++++++()%0A++++%7D;%0A%7D%0Aenum+GeneratorState%3CY,+R%3E+%7B%0A++++Yielded(Y),%0A++++Complete(R),%0A%7D%0A%0Atrait+Generator+%7B%0A++++type+Yield;%0A++++type+Return;%0A++++fn+resume(%26mut+self)+-%3E+GeneratorState%3CSelf::Yield,+Self::Return%3E;%0A%7D%0A%0Aenum+GeneratorA+%7B%0A++++Enter,%0A++++Yield1+%7B%0A++++++++to_borrow:+String,%0A++++++++borrowed:+*const+String,%0A++++%7D,%0A++++Exit,%0A%7D%0A%0Aimpl+GeneratorA+%7B%0A++++fn+start()+-%3E+Self+%7B%0A++++++++GeneratorA::Enter%0A++++%7D%0A%7D%0Aimpl+Generator+for+GeneratorA+%7B%0A++++type+Yield+=+usize;%0A++++type+Return+=+();%0A++++fn+resume(%26mut+self)+-%3E+GeneratorState%3CSelf::Yield,+Self::Return%3E+%7B%0A++++++++++++match+self+%7B%0A++++++++++++GeneratorA::Enter+=%3E+%7B%0A++++++++++++++++let+to_borrow+=+String::from(%22Hello%22);%0A++++++++++++++++let+borrowed+=+%26to_borrow;%0A++++++++++++++++let+res+=+borrowed.len();%0A++++++++++++++++*self+=+GeneratorA::Yield1+%7Bto_borrow,+borrowed:+std::ptr::null()%7D;%0A%0A++++++++++++++++//+We+set+the+self-reference+here%0A++++++++++++++++if+let+GeneratorA::Yield1+%7Bto_borrow,+borrowed%7D+=+self+%7B%0A++++++++++++++++++++*borrowed+=+to_borrow;%0A++++++++++++++++%7D%0A%0A++++++++++++++++GeneratorState::Yielded(res)%0A++++++++++++%7D%0A%0A++++++++++++GeneratorA::Yield1+%7Bborrowed,+..%7D+=%3E+%7B%0A++++++++++++++++let+borrowed:+%26String+=+unsafe+%7B%26**borrowed%7D;%0A++++++++++++++++println!(%22%7B%7D+world%22,+borrowed);%0A++++++++++++++++*self+=+GeneratorA::Exit;%0A++++++++++++++++GeneratorState::Complete(())%0A++++++++++++%7D%0A++++++++++++GeneratorA::Exit+=%3E+panic!(%22Can't+advance+an+exited+generator!%22),%0A++++++++%7D%0A++++%7D%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>上面代码在 Safe Rust 下是存在问题的，有 UB 风险。</p>
+<p>用 Pin 修正：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![feature(generators, generator_trait)]
+</span><span class="kw">use </span>std::ops::{Generator, GeneratorState};
+
+
+<span class="kw">pub fn </span>main() {
+    <span class="comment">// 使用 static 关键字创建 immovable 生成器
+    </span><span class="kw">let </span>gen1 = <span class="kw">static </span>|| {
+        <span class="kw">let </span>to_borrow = String::from(<span class="string">"Hello"</span>);
+        <span class="kw">let </span>borrowed = <span class="kw-2">&amp;</span>to_borrow;
+        <span class="kw">yield </span>borrowed.len();
+        <span class="macro">println!</span>(<span class="string">"{} world!"</span>, borrowed);
+    };
+
+    <span class="kw">let </span>gen2 = <span class="kw">static </span>|| {
+        <span class="kw">let </span>to_borrow = String::from(<span class="string">"Hello"</span>);
+        <span class="kw">let </span>borrowed = <span class="kw-2">&amp;</span>to_borrow;
+        <span class="kw">yield </span>borrowed.len();
+        <span class="macro">println!</span>(<span class="string">"{} world!"</span>, borrowed);
+    };
+
+    <span class="kw">let </span><span class="kw-2">mut </span>pinned1 = Box::pin(gen1);
+    <span class="kw">let </span><span class="kw-2">mut </span>pinned2 = Box::pin(gen2);
+
+    <span class="kw">if let </span>GeneratorState::Yielded(n) = pinned1.as_mut().resume(()) {
+        <span class="macro">println!</span>(<span class="string">"Gen1 got value {}"</span>, n);
+    }
+
+    <span class="kw">if let </span>GeneratorState::Yielded(n) = pinned2.as_mut().resume(()) {
+        <span class="macro">println!</span>(<span class="string">"Gen2 got value {}"</span>, n);
+    };
+
+    <span class="kw">let _ </span>= pinned1.as_mut().resume(());
+    <span class="kw">let _ </span>= pinned2.as_mut().resume(());
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(generators,+generator_trait)%5D%0Ause+std::ops::%7BGenerator,+GeneratorState%7D;%0A%0A%0Apub+fn+main()+%7B%0A++++//+%E4%BD%BF%E7%94%A8+static+%E5%85%B3%E9%94%AE%E5%AD%97%E5%88%9B%E5%BB%BA+immovable+%E7%94%9F%E6%88%90%E5%99%A8%0A++++let+gen1+=+static+%7C%7C+%7B%0A++++++++let+to_borrow+=+String::from(%22Hello%22);%0A++++++++let+borrowed+=+%26to_borrow;%0A++++++++yield+borrowed.len();%0A++++++++println!(%22%7B%7D+world!%22,+borrowed);%0A++++%7D;%0A%0A++++let+gen2+=+static+%7C%7C+%7B%0A++++++++let+to_borrow+=+String::from(%22Hello%22);%0A++++++++let+borrowed+=+%26to_borrow;%0A++++++++yield+borrowed.len();%0A++++++++println!(%22%7B%7D+world!%22,+borrowed);%0A++++%7D;%0A%0A++++let+mut+pinned1+=+Box::pin(gen1);%0A++++let+mut+pinned2+=+Box::pin(gen2);%0A%0A++++if+let+GeneratorState::Yielded(n)+=+pinned1.as_mut().resume(())+%7B%0A++++++++println!(%22Gen1+got+value+%7B%7D%22,+n);%0A++++%7D%0A%0A++++if+let+GeneratorState::Yielded(n)+=+pinned2.as_mut().resume(())+%7B%0A++++++++println!(%22Gen2+got+value+%7B%7D%22,+n);%0A++++%7D;%0A%0A++++let+_+=+pinned1.as_mut().resume(());%0A++++let+_+=+pinned2.as_mut().resume(());%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>第三方库 genawaiter：stable rust 实现 generator 。</p>
+<p><a href="https://github.com/whatisaphone/genawaiter">https://github.com/whatisaphone/genawaiter</a></p>
+</div></details></section></div></main></body></html>

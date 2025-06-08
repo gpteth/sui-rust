@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Overlapping blanket impls"><title>blanket_impls in inviting_rust::ch02::s5_trait_and_generic - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">blanket_<wbr>impls</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#overlapping-blanket-impls" title="Overlapping blanket impls">Overlapping blanket impls</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s5_<wbr>trait_<wbr>and_<wbr>generic</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s5_trait_and_generic</a></div><h1>Function <span class="fn">blanket_impls</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s5_trait_and_generic.rs.html#732-734">Source</a> </span></div><pre class="rust item-decl"><code>pub fn blanket_impls()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="overlapping-blanket-impls"><a class="doc-anchor" href="#overlapping-blanket-impls">§</a>Overlapping blanket impls</h2>
+<p>当前 Rust 不支持  <code>trait </code>为 同一个类型覆盖实现：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">trait </span>Blanket {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
+    }
+
+    <span class="kw">impl </span>Blanket <span class="kw">for </span>u8 {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"impl1"
+        </span>}
+    }
+
+    <span class="comment">// Compilation fails at that point
+    </span><span class="kw">impl </span>Blanket <span class="kw">for </span>u8 {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"impl2"
+        </span>}
+    }
+
+    <span class="kw">fn </span>main() {
+        <span class="comment">// If compilation succeeded, what would be printed?
+        </span><span class="macro">println!</span>(<span class="string">"{}"</span>, <span class="number">0u8</span>.blanket());
+    }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Atrait+Blanket+%7B%0A++++++++fn+blanket(%26self)+-%3E+%26'static+str;%0A++++%7D%0A%0A++++impl+Blanket+for+u8+%7B%0A++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++%22impl1%22%0A++++++++%7D%0A++++%7D%0A%0A++++//+Compilation+fails+at+that+point%0A++++impl+Blanket+for+u8+%7B%0A++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++%22impl2%22%0A++++++++%7D%0A++++%7D%0A%0A++++fn+main()+%7B%0A++++++++//+If+compilation+succeeded,+what+would+be+printed?%0A++++++++println!(%22%7B%7D%22,+0u8.blanket());%0A++++%7D&amp;edition=2018"></a></div>
+<p>再比如泛型：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">impl </span>&lt;T: ToString&gt; Blanket <span class="kw">for </span>T { ... }
+
+    <span class="comment">// Compilation fails at that point
+    </span><span class="kw">impl </span>&lt;T: Clone&gt; Blanket <span class="kw">for </span>T { ...}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++impl+%3CT:+ToString%3E+Blanket+for+T+%7B+...+%7D%0A++++%0A++++++++//+Compilation+fails+at+that+point%0A++++++++impl+%3CT:+Clone%3E+Blanket+for+T+%7B+...%7D%0A%7D&amp;edition=2018"></a></div>
+<p>以上是 Rust 不允许的。</p>
+<p>虽然特化功能也逐渐开始支持，但不足以解决上面这种存在<code>trait</code>实现“竞争”的情况。</p>
+<p>一个解决方案是：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>    <span class="kw">trait </span>Blanket&lt;I&gt; {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str;
+    }
+
+    <span class="kw">impl </span>Blanket&lt;u8&gt; <span class="kw">for </span>u8 {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"u8"
+        </span>}
+    }
+
+    <span class="kw">impl</span>&lt;T: ToString&gt; Blanket&lt;<span class="kw-2">&amp;</span>ToString&gt; <span class="kw">for </span>T {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"ToString"
+        </span>}
+    }
+
+    <span class="kw">trait </span>CloneBlanket {}
+
+    <span class="kw">impl</span>&lt;T: Clone&gt; Blanket&lt;<span class="kw-2">&amp;</span>CloneBlanket&gt; <span class="kw">for </span>T {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"Clone"
+        </span>}
+    }
+
+    <span class="kw">trait </span>TryIntoBlanket&lt;T&gt; {
+        <span class="kw">type </span>Error;
+    }
+
+    <span class="kw">impl</span>&lt;T, E, U&gt; Blanket&lt;<span class="kw-2">&amp;</span>TryIntoBlanket&lt;T, Error = E&gt;&gt; <span class="kw">for </span>U
+    <span class="kw">where
+        </span>U: TryInto&lt;T, Error = E&gt;,
+    {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"try_into"
+        </span>}
+    }
+
+    <span class="kw">impl</span>&lt;T: ToString&gt; Blanket&lt;<span class="kw-2">&amp;</span>ToString&gt; <span class="kw">for </span>T {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"to_string"
+        </span>}
+    }
+
+    <span class="kw">impl</span>&lt;T: AsRef&lt;U&gt;, U: <span class="question-mark">?</span>Sized&gt; Blanket&lt;<span class="kw-2">&amp;</span>AsRef&lt;U&gt;&gt; <span class="kw">for </span>T {
+        <span class="kw">fn </span>blanket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="string">"as_ref"
+        </span>}
+    }
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++trait+Blanket%3CI%3E+%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str;%0A++++++++%7D%0A++++%0A++++++++impl+Blanket%3Cu8%3E+for+u8+%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++++++%22u8%22%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++impl%3CT:+ToString%3E+Blanket%3C%26ToString%3E+for+T+%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++++++%22ToString%22%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++trait+CloneBlanket+%7B%7D%0A++++%0A++++++++impl%3CT:+Clone%3E+Blanket%3C%26CloneBlanket%3E+for+T+%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++++++%22Clone%22%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++trait+TryIntoBlanket%3CT%3E+%7B%0A++++++++++++type+Error;%0A++++++++%7D%0A++++%0A++++++++impl%3CT,+E,+U%3E+Blanket%3C%26TryIntoBlanket%3CT,+Error+=+E%3E%3E+for+U%0A++++++++where%0A++++++++++++U:+TryInto%3CT,+Error+=+E%3E,%0A++++++++%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++++++%22try_into%22%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++impl%3CT:+ToString%3E+Blanket%3C%26ToString%3E+for+T+%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++++++%22to_string%22%0A++++++++++++%7D%0A++++++++%7D%0A++++%0A++++++++impl%3CT:+AsRef%3CU%3E,+U:+?Sized%3E+Blanket%3C%26AsRef%3CU%3E%3E+for+T+%7B%0A++++++++++++fn+blanket(%26self)+-%3E+%26'static+str+%7B%0A++++++++++++++++%22as_ref%22%0A++++++++++++%7D%0A++++++++%7D%0A%7D&amp;edition=2018"></a></div>
+<p>方案参考：https://codesandwich.github.io/overlapping_blanket_impls/</p>
+</div></details></section></div></main></body></html>

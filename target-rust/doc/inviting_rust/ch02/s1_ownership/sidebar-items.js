@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["custom_types","primitive_types","understand_clone","understand_copy","understand_copy_clone","understand_drop","understand_move"]};

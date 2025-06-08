@@ -1,0 +1,3 @@
+var srcIndex = new Map(JSON.parse('[["inviting_rust",["",[["ch01",[],["ctfe.rs","expr.rs","lexical.rs","mod.rs"]],["ch02",[],["mod.rs","s1_ownership.rs","s2_lifetime.rs","s3_thread_safe.rs","s4_lockfree.rs","s5_trait_and_generic.rs","s6_paradigms.rs","s7_error_handle.rs","s8_metaprogramming.rs","s9_unsafe_rust.rs"]],["ch03",[],["mod.rs","s1_io_model.rs","s2_async_await.rs","s3_async_runtime.rs"]],["ch04",[],["mod.rs","s1_frameworkers.rs"]]],["lib.rs"]]]]'));
+createSrcSidebar();
+//{"start":36,"fragment_lengths":[421]}

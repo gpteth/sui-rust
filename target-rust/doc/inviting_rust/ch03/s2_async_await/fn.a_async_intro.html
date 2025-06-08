@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="让我们先从建立异步编程模型的整体概念框架开始，先不深入细节。"><title>a_async_intro in inviting_rust::ch03::s2_async_await - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch03::<wbr>s2_<wbr>async_<wbr>await</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch03</a>::<wbr><a href="index.html">s2_async_await</a></div><h1>Function <span class="fn">a_async_intro</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch03/s2_async_await.rs.html#109">Source</a> </span></div><pre class="rust item-decl"><code>pub fn a_async_intro()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>让我们先从建立异步编程模型的整体概念框架开始，先不深入细节。</p>
+<p><strong>Rust 提供的异步并发相比于其他语言有什么特点？</strong></p>
+<ol>
+<li>Rust 语言只是提供一个零成本的异步编程抽象，而不内置运行时。</li>
+<li>基于 Generator 实现的 Future，在 Future 基础上 提供 async/await 语法糖。本质是一个状态机。</li>
+</ol>
+<p>查看 README 和其他编程语言比较的图示。</p>
+<p><strong>为什么需要异步？</strong></p>
+<ol>
+<li>对极致性能的追求。</li>
+<li>对编程体验的追求。</li>
+</ol>
+<p><strong>异步编程模型发展阶段：</strong></p>
+<ol>
+<li>Callback</li>
+<li>Promise/Future</li>
+<li>async/await</li>
+</ol>
+<p>可在项目 README 查看回调地狱示例图。</p>
+<div class="example-wrap"><pre class="language-text"><code>A
++------+
+|      |
+|      |
+|      +-------------------+
+|      |                   |
+|      |                   |
+|      |                  Bv
++------+                +-----+
+|      |                |     |
+|      |                | do1 |
+|      |                |     |
+|      |                +-----+
+|      |                |     |
+|      |                | do2 |
+|      |                +-+---+
+|      |                  |
+|      |                  |
+| A    |                  |
++------+                  |
+|      |                  |
+|      |                  |
+|      |                  |
+|      | &lt;----------------+
+|      |
+|      |
+|      |
++------+
+</code></pre></div>
+<p>早期 Rust 异步写法示意：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>future = id_rpc(<span class="kw-2">&amp;</span>my_server).and_then(|id| {
+    get_row(id)
+}).map(|row| {
+    json::encode(row)
+}).and_then(|encoded| {
+    write_string(my_socket, encoded)
+});</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++let+future+=+id_rpc(%26my_server).and_then(%7Cid%7C+%7B%0A++++++++get_row(id)%0A++++%7D).map(%7Crow%7C+%7B%0A++++++++json::encode(row)%0A++++%7D).and_then(%7Cencoded%7C+%7B%0A++++++++write_string(my_socket,+encoded)%0A++++%7D);%0A%7D&amp;edition=2018"></a></div>
+<p>这样写会存在大量内嵌 Future，开发体验不好。</p>
+<p>引入 async/await 之后：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">let </span>id = id_rpc(<span class="kw-2">&amp;</span>my_server).<span class="kw">await</span>;
+<span class="kw">let </span>row = get_row(id).<span class="kw">await</span>;
+<span class="kw">let </span>encoded = json::encode(row);
+write_string(my_socket, encoded).<span class="kw">await</span>;</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++let+id+=+id_rpc(%26my_server).await;%0A++++let+row+=+get_row(id).await;%0A++++let+encoded+=+json::encode(row);%0A++++write_string(my_socket,+encoded).await;%0A%7D&amp;edition=2018"></a></div>
+<p>拥有了和同步代码一致的体验。</p>
+<p><strong>异步任务可看作是一种绿色线程</strong></p>
+<p>查看 README 相关图示</p>
+<p>可以说，异步任务的行为是模仿 线程 来抽象。</p>
+<ol>
+<li>线程在进程内，异步任务在线程内。</li>
+<li>线程可被调度切换（Linux默认抢占式），异步任务也可以被调度（协作式而非抢占式）。区别在于，异步任务只在用户态，没有线程的上下文切换开销。</li>
+<li>线程有上下文信息，异步任务也有上下文信息。</li>
+<li>线程间可以通信，异步任务之间也可以通信。</li>
+<li>线程间有竞争，异步任务之间也有竞争。</li>
+</ol>
+<p>整个异步编程概念，包括异步语法、异步运行时都是围绕如何建立这种「绿色线程」抽象而成的。</p>
+</div></details></section></div></main></body></html>

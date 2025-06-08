@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["blanket_impls","object_safety","trait_concept","trait_dyn_dispatch","trait_object","trait_object_to_enum","trait_self_sized_bound"]};

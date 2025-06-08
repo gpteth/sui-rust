@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["understand_lifetime","understand_lifetime_early_late_bound","understand_lifetime_for_closure","understand_lifetime_hrtb","understand_lifetime_in_generic_type","understand_nll","understand_scope"]};

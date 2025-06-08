@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="说明： 生命周期参数：late bound vs early bound"><title>understand_lifetime_early_late_bound in inviting_rust::ch02::s2_lifetime - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s2_<wbr>lifetime</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s2_lifetime</a></div><h1>Function <span class="fn">understand_lifetime_early_late_bound</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s2_lifetime.rs.html#229-231">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_lifetime_early_late_bound()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>说明： 生命周期参数：late bound vs early bound</p>
+<p>Quiz 11: <a href="https://dtolnay.github.io/rust-quiz/11">https://dtolnay.github.io/rust-quiz/11</a></p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code>
+<span class="kw">fn </span>f&lt;<span class="lifetime">'a</span>&gt;() {}
+<span class="kw">fn </span>g&lt;<span class="lifetime">'a</span>: <span class="lifetime">'a</span>&gt;() {}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>pf = f::&lt;<span class="lifetime">'static</span>&gt; <span class="kw">as fn</span>(); <span class="comment">// late bound
+    </span><span class="kw">let </span>pg = g::&lt;<span class="lifetime">'static</span>&gt; <span class="kw">as fn</span>(); <span class="comment">// early bound
+    </span><span class="macro">print!</span>(<span class="string">"{}"</span>, pf == pg);
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%0Afn+f%3C'a%3E()+%7B%7D%0Afn+g%3C'a:+'a%3E()+%7B%7D%0A%0Afn+main()+%7B%0A++++let+pf+=+f::%3C'static%3E+as+fn();+//+late+bound%0A++++let+pg+=+g::%3C'static%3E+as+fn();+//+early+bound%0A++++print!(%22%7B%7D%22,+pf+==+pg);%0A%7D&amp;edition=2018"></a></div>
+<p>示例一：late bound lifetime</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">struct </span>Buffer {
+    buf: Vec&lt;u8&gt;,
+    pos: usize,
+}
+
+<span class="kw">impl </span>Buffer {
+    <span class="kw">fn </span>new() -&gt; Buffer {
+        Buffer {
+            buf: <span class="macro">vec!</span>[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>,<span class="number">6</span>],
+            pos: <span class="number">0</span>,
+        }
+    }
+
+    <span class="kw">fn </span>read_bytes&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8] {
+        <span class="self">self</span>.pos += <span class="number">3</span>;
+        <span class="kw-2">&amp;</span><span class="self">self</span>.buf[<span class="self">self</span>.pos-<span class="number">3</span>..<span class="self">self</span>.pos]
+    }
+}
+
+<span class="kw">fn </span>print(b1 :<span class="kw-2">&amp;</span>[u8], b2: <span class="kw-2">&amp;</span>[u8]) {
+    <span class="macro">println!</span>(<span class="string">"{:#?} {:#?}"</span>, b1, b2)
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span><span class="kw-2">mut </span>buf = Buffer::new();
+    <span class="comment">// let b1 = buf.read_bytes(); // don't work
+    </span><span class="kw">let </span>b1 = <span class="kw-2">&amp;</span>(buf.read_bytes().to_owned());
+    <span class="kw">let </span>b2 = buf.read_bytes();
+    print(b1,b2)
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Astruct+Buffer+%7B%0A++++buf:+Vec%3Cu8%3E,%0A++++pos:+usize,%0A%7D%0A%0Aimpl+Buffer+%7B%0A++++fn+new()+-%3E+Buffer+%7B%0A++++++++Buffer+%7B%0A++++++++++++buf:+vec!%5B1,2,3,+4,+5,6%5D,%0A++++++++++++pos:+0,%0A++++++++%7D%0A++++%7D%0A%0A++++fn+read_bytes%3C'a%3E(%26'a+mut+self)+-%3E+%26'a+%5Bu8%5D+%7B%0A++++++++self.pos+%2B=+3;%0A++++++++%26self.buf%5Bself.pos-3..self.pos%5D%0A++++%7D%0A%7D%0A%0Afn+print(b1+:%26%5Bu8%5D,+b2:+%26%5Bu8%5D)+%7B%0A++++println!(%22%7B:%23?%7D+%7B:%23?%7D%22,+b1,+b2)%0A%7D%0A%0Afn+main()+%7B%0A++++let+mut+buf+=+Buffer::new();%0A++++//+let+b1+=+buf.read_bytes();+//+don't+work%0A++++let+b1+=+%26(buf.read_bytes().to_owned());%0A++++let+b2+=+buf.read_bytes();%0A++++print(b1,b2)%0A%7D&amp;edition=2018"></a></div>
+<p>示例二： early bound lifetime</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>main() {
+    <span class="kw">let </span>v = <span class="macro">vec!</span>[<span class="number">1</span>,<span class="number">2</span>,<span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>,<span class="number">6</span>];
+    <span class="kw">let </span><span class="kw-2">mut </span>buf = Buffer::new(<span class="kw-2">&amp;</span>v);
+    <span class="kw">let </span>b1 = buf.read_bytes();
+    <span class="comment">// let b1 = &amp;buf.read_bytes().to_owned();
+    </span><span class="kw">let </span>b2 = buf.read_bytes();
+    print(b1,b2)
+}
+
+<span class="kw">fn </span>print(b1 :<span class="kw-2">&amp;</span>[u8], b2: <span class="kw-2">&amp;</span>[u8]) {
+    <span class="macro">println!</span>(<span class="string">"{:#?} {:#?}"</span>, b1, b2)
+}
+
+<span class="kw">struct </span>Buffer&lt;<span class="lifetime">'a</span>&gt; {
+    buf: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8],
+    pos: usize,
+}
+
+<span class="kw">impl</span>&lt;<span class="lifetime">'b</span>, <span class="lifetime">'a</span>: <span class="lifetime">'b</span>&gt; Buffer&lt;<span class="lifetime">'a</span>&gt; {
+    <span class="kw">fn </span>new(b: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]) -&gt; Buffer {
+        Buffer {
+            buf: b,
+            pos: <span class="number">0</span>,
+        }
+    }
+
+    <span class="kw">fn </span>read_bytes(<span class="kw-2">&amp;</span><span class="lifetime">'b </span><span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8] {
+        <span class="self">self</span>.pos += <span class="number">3</span>;
+        <span class="kw-2">&amp;</span><span class="self">self</span>.buf[<span class="self">self</span>.pos-<span class="number">3</span>..<span class="self">self</span>.pos]
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++let+v+=+vec!%5B1,2,3,+4,+5,6%5D;%0A++++let+mut+buf+=+Buffer::new(%26v);%0A++++let+b1+=+buf.read_bytes();%0A++++//+let+b1+=+%26buf.read_bytes().to_owned();%0A++++let+b2+=+buf.read_bytes();%0A++++print(b1,b2)%0A%7D%0A%0Afn+print(b1+:%26%5Bu8%5D,+b2:+%26%5Bu8%5D)+%7B%0A++++println!(%22%7B:%23?%7D+%7B:%23?%7D%22,+b1,+b2)%0A%7D%0A%0Astruct+Buffer%3C'a%3E+%7B%0A++++buf:+%26'a+%5Bu8%5D,%0A++++pos:+usize,%0A%7D%0A%0Aimpl%3C'b,+'a:+'b%3E+Buffer%3C'a%3E+%7B%0A++++fn+new(b:+%26'a+%5Bu8%5D)+-%3E+Buffer+%7B%0A++++++++Buffer+%7B%0A++++++++++++buf:+b,%0A++++++++++++pos:+0,%0A++++++++%7D%0A++++%7D%0A%0A++++fn+read_bytes(%26'b+mut+self)+-%3E+%26'a+%5Bu8%5D+%7B%0A++++++++self.pos+%2B=+3;%0A++++++++%26self.buf%5Bself.pos-3..self.pos%5D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

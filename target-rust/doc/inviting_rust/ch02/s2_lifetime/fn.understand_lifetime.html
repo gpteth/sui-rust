@@ -1,0 +1,57 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="理解普通生命周期参数："><title>understand_lifetime in inviting_rust::ch02::s2_lifetime - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s2_<wbr>lifetime</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s2_lifetime</a></div><h1>Function <span class="fn">understand_lifetime</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s2_lifetime.rs.html#133-135">Source</a> </span></div><pre class="rust item-decl"><code>pub fn understand_lifetime()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>理解普通生命周期参数：</p>
+<p>说明： 生命周期参数：late bound vs early bound</p>
+<p>示例1:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>return_str&lt;<span class="lifetime">'a</span>&gt;() -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str {
+    <span class="kw">let </span><span class="kw-2">mut </span>s = <span class="string">"Rust"</span>.to_string();
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..<span class="number">3 </span>{
+        s.push_str(<span class="string">"Good "</span>);
+    }
+    <span class="kw-2">&amp;</span>s[..]                   <span class="comment">//"Rust Good Good Good"
+</span>}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>x = return_str();
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+return_str%3C'a%3E()+-%3E+%26'a+str+%7B%0A++++let+mut+s+=+%22Rust%22.to_string();%0A++++for+i+in+0..3+%7B%0A++++++++s.push_str(%22Good+%22);%0A++++%7D%0A++++%26s%5B..%5D+++++++++++++++++++//%22Rust+Good+Good+Good%22%0A%7D%0Afn+main()+%7B%0A++++let+x+=+return_str();%0A%7D&amp;edition=2018"></a></div>
+<p>示例2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>foo&lt;<span class="lifetime">'a</span>&gt;(x: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str, y: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str {
+    <span class="kw">let </span>result = String::from(<span class="string">"really long string"</span>);
+    <span class="comment">// error
+    </span>result.as_str()
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>x = <span class="string">"hello"</span>;
+    <span class="kw">let </span>y = <span class="string">"rust"</span>;
+    foo(x, y);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+foo%3C'a%3E(x:+%26'a+str,+y:+%26'a+str)+-%3E+%26'a+str+%7B%0A++++let+result+=+String::from(%22really+long+string%22);%0A++++//+error%0A++++result.as_str()%0A%7D%0A%0Afn+main()+%7B%0A++++let+x+=+%22hello%22;%0A++++let+y+=+%22rust%22;%0A++++foo(x,+y);%0A%7D&amp;edition=2018"></a></div>
+<p>示例3:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>the_longest(s1: <span class="kw-2">&amp;</span>str, s2: <span class="kw-2">&amp;</span>str) -&gt; <span class="kw-2">&amp;</span>str {
+    <span class="kw">if </span>s1.len() &gt; s2.len() { s1 } <span class="kw">else </span>{ s2 }
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>s1 = String::from(<span class="string">"Rust"</span>);
+    <span class="kw">let </span>s1_r = <span class="kw-2">&amp;</span>s1;
+    {
+        <span class="kw">let </span>s2 = String::from(<span class="string">"C"</span>);
+        <span class="kw">let </span>res = the_longest(s1_r, <span class="kw-2">&amp;</span>s2);
+    <span class="macro">println!</span>(<span class="string">"{} is the longest"</span>, res);
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=fn+the_longest(s1:+%26str,+s2:+%26str)+-%3E+%26str+%7B%0A++++if+s1.len()+%3E+s2.len()+%7B+s1+%7D+else+%7B+s2+%7D%0A%7D%0Afn+main()+%7B%0A++++let+s1+=+String::from(%22Rust%22);%0A++++let+s1_r+=+%26s1;%0A++++%7B%0A++++++++let+s2+=+String::from(%22C%22);%0A++++++++let+res+=+the_longest(s1_r,+%26s2);%0A++++println!(%22%7B%7D+is+the+longest%22,+res);%0A%7D%0A&amp;edition=2018"></a></div>
+<p>示例4:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>the_longest&lt;<span class="lifetime">'a</span>&gt;(s1: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str, s2: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str {
+    <span class="kw">if </span>s1.len() &gt; s2.len() { s1 } <span class="kw">else </span>{ s2}
+}
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>s1 = String::from(<span class="string">"Rust"</span>);
+    <span class="kw">let </span>s1_r = <span class="kw-2">&amp;</span>s1;
+    {
+        <span class="kw">let </span>s2 = String::from(<span class="string">"C"</span>);
+        <span class="kw">let </span>res = the_longest(s1_r, <span class="kw-2">&amp;</span>s2);
+    <span class="macro">println!</span>(<span class="string">"{} is the longest"</span>, res); <span class="comment">// Rust is the longest
+</span>}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=fn+the_longest%3C'a%3E(s1:+%26'a+str,+s2:+%26'a+str)+-%3E+%26'a+str+%7B%0A++++if+s1.len()+%3E+s2.len()+%7B+s1+%7D+else+%7B+s2%7D%0A%7D%0Afn+main()+%7B%0A++++let+s1+=+String::from(%22Rust%22);%0A++++let+s1_r+=+%26s1;%0A++++%7B%0A++++++++let+s2+=+String::from(%22C%22);%0A++++++++let+res+=+the_longest(s1_r,+%26s2);%0A++++println!(%22%7B%7D+is+the+longest%22,+res);+//+Rust+is+the+longest%0A%7D%0A&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

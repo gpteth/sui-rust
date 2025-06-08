@@ -1,0 +1,459 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="安全抽象"><title>security_abstract in inviting_rust::ch02::s9_unsafe_rust - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">security_<wbr>abstract</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#安全抽象" title="安全抽象">安全抽象</a><ul><li><a href="#drop-check" title="Drop check">Drop check</a></li></ul></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch02::<wbr>s9_<wbr>unsafe_<wbr>rust</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch02</a>::<wbr><a href="index.html">s9_unsafe_rust</a></div><h1>Function <span class="fn">security_abstract</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch02/s9_unsafe_rust.rs.html#582">Source</a> </span></div><pre class="rust item-decl"><code>pub fn security_abstract()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h2 id="安全抽象"><a class="doc-anchor" href="#安全抽象">§</a>安全抽象</h2>
+<p>什么叫安全抽象？ 最简单的示例：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>unbound_lifetime_foo&lt;<span class="lifetime">'a</span>&gt;(input: <span class="kw-2">*const </span>u32) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>u32 {
+    <span class="kw">unsafe </span>{
+        <span class="kw">return </span><span class="kw-2">&amp;*</span>input
+    }
+}
+
+<span class="kw">fn </span>normal_foo&lt;<span class="lifetime">'a</span>&gt;(input: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>u32) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'a </span>u32 {
+    <span class="kw-2">&amp;</span>input
+
+}
+
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>x;
+    { <span class="comment">// -----------------------------------------------------------------------------------  `y` lifetime start
+        // unbound lifetime broken lifetime
+        </span><span class="kw">let </span>y = <span class="number">7</span>;
+        x = unbound_lifetime_foo(<span class="kw-2">&amp;</span>y);
+
+        <span class="comment">// normal lifetime will error: error[E0597]: `y` does not live long enough
+        // let y = 8;
+        // x = normal_foo(&amp;y);
+    </span>} <span class="comment">// ----------------------------------------------------------------------------------- `y` lifetime end
+    </span><span class="macro">println!</span>(<span class="string">"hello: {}"</span>, x);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+unbound_lifetime_foo%3C'a%3E(input:+*const+u32)+-%3E+%26'a+u32+%7B%0A++++unsafe+%7B%0A++++++++return+%26*input%0A++++%7D%0A%7D%0A%0Afn+normal_foo%3C'a%3E(input:+%26'a+u32)+-%3E+%26'a+u32+%7B%0A++++%26input%0A%0A%7D%0A%0Afn+main()+%7B%0A++++let+x;%0A++++%7B+//+-----------------------------------------------------------------------------------++%60y%60+lifetime+start%0A++++++++//+unbound+lifetime+broken+lifetime%0A++++++++let+y+=+7;%0A++++++++x+=+unbound_lifetime_foo(%26y);%0A%0A++++++++//+normal+lifetime+will+error:+error%5BE0597%5D:+%60y%60+does+not+live+long+enough%0A++++++++//+let+y+=+8;%0A++++++++//+x+=+normal_foo(%26y);%0A++++%7D+//+-----------------------------------------------------------------------------------+%60y%60+lifetime+end%0A++++println!(%22hello:+%7B%7D%22,+x);%0A%7D&amp;edition=2018"></a></div>
+<p>示例2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">pub fn </span>insert(<span class="kw-2">&amp;mut </span><span class="self">self</span>, index: usize, element: T) {
+    <span class="kw">let </span>len = <span class="self">self</span>.len();
+    <span class="comment">// 通过该断言保证了数组不能越界
+    </span><span class="macro">assert!</span>(index &lt;= len);
+    <span class="comment">// 通过判断长度是否达到容量极限来决定是否进行扩容
+    </span><span class="kw">if </span>len == <span class="self">self</span>.buf.cap() {
+        <span class="self">self</span>.reserve(<span class="number">1</span>);
+    }
+    <span class="kw">unsafe </span>{
+        {
+            <span class="kw">let </span>p = <span class="self">self</span>.as_mut_ptr().offset(index <span class="kw">as </span>isize);
+            ptr::copy(p, p.offset(<span class="number">1</span>), len - index);
+            ptr::write(p, element);
+        }
+        <span class="self">self</span>.set_len(len + <span class="number">1</span>);
+    }
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+main()+%7B%0A++++pub+fn+insert(%26mut+self,+index:+usize,+element:+T)+%7B%0A++++++++let+len+=+self.len();%0A++++++++//+%E9%80%9A%E8%BF%87%E8%AF%A5%E6%96%AD%E8%A8%80%E4%BF%9D%E8%AF%81%E4%BA%86%E6%95%B0%E7%BB%84%E4%B8%8D%E8%83%BD%E8%B6%8A%E7%95%8C%0A++++++++assert!(index+%3C=+len);%0A++++++++//+%E9%80%9A%E8%BF%87%E5%88%A4%E6%96%AD%E9%95%BF%E5%BA%A6%E6%98%AF%E5%90%A6%E8%BE%BE%E5%88%B0%E5%AE%B9%E9%87%8F%E6%9E%81%E9%99%90%E6%9D%A5%E5%86%B3%E5%AE%9A%E6%98%AF%E5%90%A6%E8%BF%9B%E8%A1%8C%E6%89%A9%E5%AE%B9%0A++++++++if+len+==+self.buf.cap()+%7B%0A++++++++++++self.reserve(1);%0A++++++++%7D%0A++++++++unsafe+%7B%0A++++++++++++%7B%0A++++++++++++++++let+p+=+self.as_mut_ptr().offset(index+as+isize);%0A++++++++++++++++ptr::copy(p,+p.offset(1),+len+-+index);%0A++++++++++++++++ptr::write(p,+element);%0A++++++++++++%7D%0A++++++++++++self.set_len(len+%2B+1);%0A++++++++%7D%0A++++%7D%0A%7D&amp;edition=2018"></a></div>
+<h4 id="drop-check"><a class="doc-anchor" href="#drop-check">§</a>Drop check</h4>
+<p>示例1：正常的drop check</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![allow(unused)]
+#![feature(alloc_layout_extra)]
+#![feature(dropck_eyepatch)]
+</span><span class="kw">use </span>std::alloc::{GlobalAlloc, Layout, System};
+<span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::marker::PhantomData;
+<span class="kw">use </span>std::mem;
+<span class="kw">use </span>std::ptr;
+
+<span class="attr">#[derive(Copy, Clone, Debug)]
+
+</span><span class="kw">enum </span>State {
+    InValid,
+    Valid,
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>Hello&lt;T: fmt::Debug&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, T, State);
+<span class="kw">impl</span>&lt;T: fmt::Debug&gt; Hello&lt;T&gt; {
+    <span class="kw">fn </span>new(name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, t: T) -&gt; <span class="self">Self </span>{
+        Hello(name, t, State::Valid)
+    }
+}
+<span class="kw">impl</span>&lt;T: fmt::Debug&gt; Drop <span class="kw">for </span>Hello&lt;T&gt; {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"drop Hello({}, {:?}, {:?})"</span>, <span class="self">self</span>.<span class="number">0</span>, <span class="self">self</span>.<span class="number">1</span>, <span class="self">self</span>.<span class="number">2</span>);
+        <span class="self">self</span>.<span class="number">2 </span>= State::InValid;
+    }
+}
+<span class="kw">struct </span>WrapBox&lt;T&gt; {
+    v: Box&lt;T&gt;,
+}
+<span class="kw">impl</span>&lt;T&gt; WrapBox&lt;T&gt; {
+    <span class="kw">fn </span>new(t: T) -&gt; <span class="self">Self </span>{
+        WrapBox { v: Box::new(t) }
+    }
+}
+<span class="kw">fn </span>f1() {
+    <span class="kw">let </span>x;
+    <span class="kw">let </span>y;
+    x = Hello::new(<span class="string">"x"</span>, <span class="number">13</span>);
+    y = WrapBox::new(Hello::new(<span class="string">"y"</span>, <span class="kw-2">&amp;</span>x));
+}
+
+<span class="kw">struct </span>MyBox&lt;T&gt; {
+    v: <span class="kw-2">*const </span>T,
+}
+<span class="kw">impl</span>&lt;T&gt; MyBox&lt;T&gt; {
+    <span class="kw">fn </span>new(t: T) -&gt; <span class="self">Self </span>{
+        <span class="kw">unsafe </span>{
+            <span class="kw">let </span>p = System.alloc(Layout::array::&lt;T&gt;(<span class="number">1</span>).unwrap());
+            <span class="kw">let </span>p = p <span class="kw">as </span><span class="kw-2">*mut </span>T;
+            ptr::write(p, t);
+            MyBox {
+                v: p,
+            }
+        }
+    }
+}
+
+
+<span class="kw">impl</span>&lt; T&gt; Drop <span class="kw">for </span>MyBox&lt;T&gt; {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">unsafe </span>{
+            <span class="kw">let </span>p = <span class="self">self</span>.v <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_</span>;
+            System.dealloc(p, Layout::array::&lt;T&gt;(mem::align_of::&lt;T&gt;()).unwrap());
+        }
+    }
+}
+
+
+<span class="kw">fn </span>f2() {
+    {
+        <span class="kw">let </span>(x1, y1);
+        x1 = Hello::new(<span class="string">"x1"</span>, <span class="number">13</span>);
+        y1 = MyBox::new(Hello::new(<span class="string">"y1"</span>, <span class="kw-2">&amp;</span>x1));
+    }
+    {
+        <span class="kw">let </span>(y2,x2 ); <span class="comment">// 此处交换，会报错，注意编译错误
+        </span>x2 = Hello::new(<span class="string">"x2"</span>, <span class="number">13</span>);
+        y2 = MyBox::new(Hello::new(<span class="string">"y2"</span>, <span class="kw-2">&amp;</span>x2));
+    }
+}
+
+<span class="kw">fn </span>main() {
+    f1();
+    f2();
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(alloc_layout_extra)%5D%0A%23!%5Bfeature(dropck_eyepatch)%5D%0A%23!%5Ballow(unused)%5D%0A%23!%5Ballow(unused)%5D%0Ause+std::alloc::%7BGlobalAlloc,+Layout,+System%7D;%0Ause+std::fmt;%0Ause+std::marker::PhantomData;%0Ause+std::mem;%0Ause+std::ptr;%0A%0A%23%5Bderive(Copy,+Clone,+Debug)%5D%0A%0Aenum+State+%7B%0A++++InValid,%0A++++Valid,%0A%7D%0A%0A%23%5Bderive(Debug)%5D%0Astruct+Hello%3CT:+fmt::Debug%3E(%26'static+str,+T,+State);%0Aimpl%3CT:+fmt::Debug%3E+Hello%3CT%3E+%7B%0A++++fn+new(name:+%26'static+str,+t:+T)+-%3E+Self+%7B%0A++++++++Hello(name,+t,+State::Valid)%0A++++%7D%0A%7D%0Aimpl%3CT:+fmt::Debug%3E+Drop+for+Hello%3CT%3E+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22drop+Hello(%7B%7D,+%7B:?%7D,+%7B:?%7D)%22,+self.0,+self.1,+self.2);%0A++++++++self.2+=+State::InValid;%0A++++%7D%0A%7D%0Astruct+WrapBox%3CT%3E+%7B%0A++++v:+Box%3CT%3E,%0A%7D%0Aimpl%3CT%3E+WrapBox%3CT%3E+%7B%0A++++fn+new(t:+T)+-%3E+Self+%7B%0A++++++++WrapBox+%7B+v:+Box::new(t)+%7D%0A++++%7D%0A%7D%0Afn+f1()+%7B%0A++++let+x;%0A++++let+y;%0A++++x+=+Hello::new(%22x%22,+13);%0A++++y+=+WrapBox::new(Hello::new(%22y%22,+%26x));%0A%7D%0A%0Astruct+MyBox%3CT%3E+%7B%0A++++v:+*const+T,%0A%7D%0Aimpl%3CT%3E+MyBox%3CT%3E+%7B%0A++++fn+new(t:+T)+-%3E+Self+%7B%0A++++++++unsafe+%7B%0A++++++++++++let+p+=+System.alloc(Layout::array::%3CT%3E(1).unwrap());%0A++++++++++++let+p+=+p+as+*mut+T;%0A++++++++++++ptr::write(p,+t);%0A++++++++++++MyBox+%7B%0A++++++++++++++++v:+p,%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A%7D%0A%0A%0Aimpl%3C+T%3E+Drop+for+MyBox%3CT%3E+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++unsafe+%7B%0A++++++++++++let+p+=+self.v+as+*mut+_;%0A++++++++++++System.dealloc(p,+Layout::array::%3CT%3E(mem::align_of::%3CT%3E()).unwrap());%0A++++++++%7D%0A++++%7D%0A%7D%0A%0A%0Afn+f2()+%7B%0A++++%7B%0A++++++++let+(x1,+y1);%0A++++++++x1+=+Hello::new(%22x1%22,+13);%0A++++++++y1+=+MyBox::new(Hello::new(%22y1%22,+%26x1));%0A++++%7D%0A++++%7B%0A++++++++let+(y2,x2+);+//+%E6%AD%A4%E5%A4%84%E4%BA%A4%E6%8D%A2%EF%BC%8C%E4%BC%9A%E6%8A%A5%E9%94%99%EF%BC%8C%E6%B3%A8%E6%84%8F%E7%BC%96%E8%AF%91%E9%94%99%E8%AF%AF%0A++++++++x2+=+Hello::new(%22x2%22,+13);%0A++++++++y2+=+MyBox::new(Hello::new(%22y2%22,+%26x2));%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++f1();%0A++++f2();%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>使用 改进：</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![allow(unused)]
+#![feature(alloc_layout_extra)]
+#![feature(dropck_eyepatch)]
+</span><span class="kw">use </span>std::alloc::{GlobalAlloc, Layout, System};
+<span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::marker::PhantomData;
+<span class="kw">use </span>std::mem;
+<span class="kw">use </span>std::ptr;
+
+<span class="attr">#[derive(Copy, Clone, Debug)]
+
+</span><span class="kw">enum </span>State {
+    InValid,
+    Valid,
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>Hello&lt;T: fmt::Debug&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, T, State);
+<span class="kw">impl</span>&lt;T: fmt::Debug&gt; Hello&lt;T&gt; {
+    <span class="kw">fn </span>new(name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, t: T) -&gt; <span class="self">Self </span>{
+        Hello(name, t, State::Valid)
+    }
+}
+<span class="kw">impl</span>&lt;T: fmt::Debug&gt; Drop <span class="kw">for </span>Hello&lt;T&gt; {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"drop Hello({}, {:?}, {:?})"</span>, <span class="self">self</span>.<span class="number">0</span>, <span class="self">self</span>.<span class="number">1</span>, <span class="self">self</span>.<span class="number">2</span>);
+        <span class="self">self</span>.<span class="number">2 </span>= State::InValid;
+    }
+}
+<span class="kw">struct </span>WrapBox&lt;T&gt; {
+    v: Box&lt;T&gt;,
+}
+<span class="kw">impl</span>&lt;T&gt; WrapBox&lt;T&gt; {
+    <span class="kw">fn </span>new(t: T) -&gt; <span class="self">Self </span>{
+        WrapBox { v: Box::new(t) }
+    }
+}
+<span class="kw">fn </span>f1() {
+    <span class="kw">let </span>x;
+    <span class="kw">let </span>y;
+    x = Hello::new(<span class="string">"x"</span>, <span class="number">13</span>);
+    y = WrapBox::new(Hello::new(<span class="string">"y"</span>, <span class="kw-2">&amp;</span>x));
+}
+
+<span class="kw">struct </span>MyBox&lt;T&gt; {
+    v: <span class="kw-2">*const </span>T,
+}
+<span class="kw">impl</span>&lt;T&gt; MyBox&lt;T&gt; {
+    <span class="kw">fn </span>new(t: T) -&gt; <span class="self">Self </span>{
+        <span class="kw">unsafe </span>{
+            <span class="kw">let </span>p = System.alloc(Layout::array::&lt;T&gt;(<span class="number">1</span>).unwrap());
+            <span class="kw">let </span>p = p <span class="kw">as </span><span class="kw-2">*mut </span>T;
+            ptr::write(p, t);
+            MyBox {
+                v: p,
+            }
+        }
+    }
+}
+
+
+<span class="kw">unsafe impl</span>&lt;<span class="attr">#[may_dangle] </span>T&gt; Drop <span class="kw">for </span>MyBox&lt;T&gt; {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">unsafe </span>{
+            <span class="kw">let </span>p = <span class="self">self</span>.v <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_</span>;
+            System.dealloc(p, Layout::array::&lt;T&gt;(mem::align_of::&lt;T&gt;()).unwrap());
+        }
+    }
+}
+
+<span class="kw">fn </span>f2() {
+    {
+        <span class="kw">let </span>(x1, y1);
+        x1 = Hello::new(<span class="string">"x1"</span>, <span class="number">13</span>);
+        y1 = MyBox::new(Hello::new(<span class="string">"y1"</span>, <span class="kw-2">&amp;</span>x1));
+    }
+    {
+        <span class="kw">let </span>(y2,x2 ); <span class="comment">// 此处改变
+        </span>x2 = Hello::new(<span class="string">"x2"</span>, <span class="number">13</span>);
+        y2 = MyBox::new(Hello::new(<span class="string">"y2"</span>, <span class="kw-2">&amp;</span>x2));
+    }
+}
+
+<span class="kw">fn </span>main() {
+    f1();
+    f2();
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(alloc_layout_extra)%5D%0A%23!%5Bfeature(dropck_eyepatch)%5D%0A%23!%5Ballow(unused)%5D%0A%23!%5Ballow(unused)%5D%0Ause+std::alloc::%7BGlobalAlloc,+Layout,+System%7D;%0Ause+std::fmt;%0Ause+std::marker::PhantomData;%0Ause+std::mem;%0Ause+std::ptr;%0A%0A%23%5Bderive(Copy,+Clone,+Debug)%5D%0A%0Aenum+State+%7B%0A++++InValid,%0A++++Valid,%0A%7D%0A%0A%23%5Bderive(Debug)%5D%0Astruct+Hello%3CT:+fmt::Debug%3E(%26'static+str,+T,+State);%0Aimpl%3CT:+fmt::Debug%3E+Hello%3CT%3E+%7B%0A++++fn+new(name:+%26'static+str,+t:+T)+-%3E+Self+%7B%0A++++++++Hello(name,+t,+State::Valid)%0A++++%7D%0A%7D%0Aimpl%3CT:+fmt::Debug%3E+Drop+for+Hello%3CT%3E+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22drop+Hello(%7B%7D,+%7B:?%7D,+%7B:?%7D)%22,+self.0,+self.1,+self.2);%0A++++++++self.2+=+State::InValid;%0A++++%7D%0A%7D%0Astruct+WrapBox%3CT%3E+%7B%0A++++v:+Box%3CT%3E,%0A%7D%0Aimpl%3CT%3E+WrapBox%3CT%3E+%7B%0A++++fn+new(t:+T)+-%3E+Self+%7B%0A++++++++WrapBox+%7B+v:+Box::new(t)+%7D%0A++++%7D%0A%7D%0Afn+f1()+%7B%0A++++let+x;%0A++++let+y;%0A++++x+=+Hello::new(%22x%22,+13);%0A++++y+=+WrapBox::new(Hello::new(%22y%22,+%26x));%0A%7D%0A%0Astruct+MyBox%3CT%3E+%7B%0A++++v:+*const+T,%0A%7D%0Aimpl%3CT%3E+MyBox%3CT%3E+%7B%0A++++fn+new(t:+T)+-%3E+Self+%7B%0A++++++++unsafe+%7B%0A++++++++++++let+p+=+System.alloc(Layout::array::%3CT%3E(1).unwrap());%0A++++++++++++let+p+=+p+as+*mut+T;%0A++++++++++++ptr::write(p,+t);%0A++++++++++++MyBox+%7B%0A++++++++++++++++v:+p,%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A%7D%0A%0A%0Aunsafe+impl%3C%23%5Bmay_dangle%5D+T%3E+Drop+for+MyBox%3CT%3E+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++unsafe+%7B%0A++++++++++++let+p+=+self.v+as+*mut+_;%0A++++++++++++System.dealloc(p,+Layout::array::%3CT%3E(mem::align_of::%3CT%3E()).unwrap());%0A++++++++%7D%0A++++%7D%0A%7D%0A%0Afn+f2()+%7B%0A++++%7B%0A++++++++let+(x1,+y1);%0A++++++++x1+=+Hello::new(%22x1%22,+13);%0A++++++++y1+=+MyBox::new(Hello::new(%22y1%22,+%26x1));%0A++++%7D%0A++++%7B%0A++++++++let+(y2,x2+);+//+%E6%AD%A4%E5%A4%84%E6%94%B9%E5%8F%98%0A++++++++x2+=+Hello::new(%22x2%22,+13);%0A++++++++y2+=+MyBox::new(Hello::new(%22y2%22,+%26x2));%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++f1();%0A++++f2();%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>使用 PhantomData 防止出现 UB:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+#![allow(unused)]
+#![feature(alloc_layout_extra)]
+#![feature(dropck_eyepatch)]
+</span><span class="kw">use </span>std::alloc::{GlobalAlloc, Layout, System};
+<span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::marker::PhantomData;
+<span class="kw">use </span>std::mem;
+<span class="kw">use </span>std::ptr;
+
+<span class="attr">#[derive(Copy, Clone, Debug)]
+
+</span><span class="kw">enum </span>State {
+    InValid,
+    Valid,
+}
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">struct </span>Hello&lt;T: fmt::Debug&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, T, State);
+<span class="kw">impl</span>&lt;T: fmt::Debug&gt; Hello&lt;T&gt; {
+    <span class="kw">fn </span>new(name: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str, t: T) -&gt; <span class="self">Self </span>{
+        Hello(name, t, State::Valid)
+    }
+}
+<span class="kw">impl</span>&lt;T: fmt::Debug&gt; Drop <span class="kw">for </span>Hello&lt;T&gt; {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="macro">println!</span>(<span class="string">"drop Hello({}, {:?}, {:?})"</span>, <span class="self">self</span>.<span class="number">0</span>, <span class="self">self</span>.<span class="number">1</span>, <span class="self">self</span>.<span class="number">2</span>);
+        <span class="self">self</span>.<span class="number">2 </span>= State::InValid;
+    }
+}
+<span class="kw">struct </span>WrapBox&lt;T&gt; {
+    v: Box&lt;T&gt;,
+}
+<span class="kw">impl</span>&lt;T&gt; WrapBox&lt;T&gt; {
+    <span class="kw">fn </span>new(t: T) -&gt; <span class="self">Self </span>{
+        WrapBox { v: Box::new(t) }
+    }
+}
+<span class="kw">fn </span>f1() {
+    <span class="kw">let </span>x;
+    <span class="kw">let </span>y;
+    x = Hello::new(<span class="string">"x"</span>, <span class="number">13</span>);
+    y = WrapBox::new(Hello::new(<span class="string">"y"</span>, <span class="kw-2">&amp;</span>x));
+}
+
+<span class="kw">struct </span>MyBox&lt;T&gt; {
+    v: <span class="kw-2">*const </span>T,
+    <span class="comment">// _pd: PhantomData&lt;T&gt;,
+</span>}
+<span class="kw">impl</span>&lt;T&gt; MyBox&lt;T&gt; {
+    <span class="kw">fn </span>new(t: T) -&gt; <span class="self">Self </span>{
+        <span class="kw">unsafe </span>{
+            <span class="kw">let </span>p = System.alloc(Layout::array::&lt;T&gt;(<span class="number">1</span>).unwrap());
+            <span class="kw">let </span>p = p <span class="kw">as </span><span class="kw-2">*mut </span>T;
+            ptr::write(p, t);
+            MyBox {
+                v: p,
+                <span class="comment">// _pd: Default::default()
+            </span>}
+        }
+    }
+}
+
+
+<span class="kw">unsafe impl</span>&lt;<span class="attr">#[may_dangle] </span>T&gt; Drop <span class="kw">for </span>MyBox&lt;T&gt; {
+    <span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">unsafe </span>{
+            ptr::read(<span class="self">self</span>.v); <span class="comment">// 此处新增，出现UB (use after free,UAF)
+            </span><span class="kw">let </span>p = <span class="self">self</span>.v <span class="kw">as </span><span class="kw-2">*mut </span><span class="kw">_</span>;
+            System.dealloc(p, Layout::array::&lt;T&gt;(mem::align_of::&lt;T&gt;()).unwrap());
+        }
+    }
+}
+
+<span class="kw">fn </span>f2() {
+    {
+        <span class="kw">let </span>(x1, y1);
+        x1 = Hello::new(<span class="string">"x1"</span>, <span class="number">13</span>);
+        y1 = MyBox::new(Hello::new(<span class="string">"y1"</span>, <span class="kw-2">&amp;</span>x1));
+    }
+    {
+        <span class="kw">let </span>(y2,x2 ); <span class="comment">// 此处改变
+        </span>x2 = Hello::new(<span class="string">"x2"</span>, <span class="number">13</span>);
+        y2 = MyBox::new(Hello::new(<span class="string">"y2"</span>, <span class="kw-2">&amp;</span>x2));
+    }
+}
+
+<span class="kw">fn </span>main() {
+    f1();
+    f2();
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(alloc_layout_extra)%5D%0A%23!%5Bfeature(dropck_eyepatch)%5D%0A%23!%5Ballow(unused)%5D%0A%23!%5Ballow(unused)%5D%0Ause+std::alloc::%7BGlobalAlloc,+Layout,+System%7D;%0Ause+std::fmt;%0Ause+std::marker::PhantomData;%0Ause+std::mem;%0Ause+std::ptr;%0A%0A%23%5Bderive(Copy,+Clone,+Debug)%5D%0A%0Aenum+State+%7B%0A++++InValid,%0A++++Valid,%0A%7D%0A%0A%23%5Bderive(Debug)%5D%0Astruct+Hello%3CT:+fmt::Debug%3E(%26'static+str,+T,+State);%0Aimpl%3CT:+fmt::Debug%3E+Hello%3CT%3E+%7B%0A++++fn+new(name:+%26'static+str,+t:+T)+-%3E+Self+%7B%0A++++++++Hello(name,+t,+State::Valid)%0A++++%7D%0A%7D%0Aimpl%3CT:+fmt::Debug%3E+Drop+for+Hello%3CT%3E+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++println!(%22drop+Hello(%7B%7D,+%7B:?%7D,+%7B:?%7D)%22,+self.0,+self.1,+self.2);%0A++++++++self.2+=+State::InValid;%0A++++%7D%0A%7D%0Astruct+WrapBox%3CT%3E+%7B%0A++++v:+Box%3CT%3E,%0A%7D%0Aimpl%3CT%3E+WrapBox%3CT%3E+%7B%0A++++fn+new(t:+T)+-%3E+Self+%7B%0A++++++++WrapBox+%7B+v:+Box::new(t)+%7D%0A++++%7D%0A%7D%0Afn+f1()+%7B%0A++++let+x;%0A++++let+y;%0A++++x+=+Hello::new(%22x%22,+13);%0A++++y+=+WrapBox::new(Hello::new(%22y%22,+%26x));%0A%7D%0A%0Astruct+MyBox%3CT%3E+%7B%0A++++v:+*const+T,%0A++++//+_pd:+PhantomData%3CT%3E,%0A%7D%0Aimpl%3CT%3E+MyBox%3CT%3E+%7B%0A++++fn+new(t:+T)+-%3E+Self+%7B%0A++++++++unsafe+%7B%0A++++++++++++let+p+=+System.alloc(Layout::array::%3CT%3E(1).unwrap());%0A++++++++++++let+p+=+p+as+*mut+T;%0A++++++++++++ptr::write(p,+t);%0A++++++++++++MyBox+%7B%0A++++++++++++++++v:+p,%0A++++++++++++++++//+_pd:+Default::default()%0A++++++++++++%7D%0A++++++++%7D%0A++++%7D%0A%7D%0A%0A%0Aunsafe+impl%3C%23%5Bmay_dangle%5D+T%3E+Drop+for+MyBox%3CT%3E+%7B%0A++++fn+drop(%26mut+self)+%7B%0A++++++++unsafe+%7B%0A++++++++++++ptr::read(self.v);+//+%E6%AD%A4%E5%A4%84%E6%96%B0%E5%A2%9E%EF%BC%8C%E5%87%BA%E7%8E%B0UB+(use+after+free,UAF)%0A++++++++++++let+p+=+self.v+as+*mut+_;%0A++++++++++++System.dealloc(p,+Layout::array::%3CT%3E(mem::align_of::%3CT%3E()).unwrap());%0A++++++++%7D%0A++++%7D%0A%7D%0A%0Afn+f2()+%7B%0A++++%7B%0A++++++++let+(x1,+y1);%0A++++++++x1+=+Hello::new(%22x1%22,+13);%0A++++++++y1+=+MyBox::new(Hello::new(%22y1%22,+%26x1));%0A++++%7D%0A++++%7B%0A++++++++let+(y2,x2+);+//+%E6%AD%A4%E5%A4%84%E6%94%B9%E5%8F%98%0A++++++++x2+=+Hello::new(%22x2%22,+13);%0A++++++++y2+=+MyBox::new(Hello::new(%22y2%22,+%26x2));%0A++++%7D%0A%7D%0A%0Afn+main()+%7B%0A++++f1();%0A++++f2();%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+<p>示例：型变</p>
+<p>在一门程序设计语言的类型系统中，一个类型规则或者类型构造器是：</p>
+<ul>
+<li>协变（covariant），如果它保持了子类型序关系≦。该序关系是：子类型≦基类型。</li>
+<li>逆变（contravariant），如果它逆转了子类型序关系。</li>
+<li>不变（invariant），如果上述两种均不适用。</li>
+</ul>
+<p>Rust 里唯一的类型父子关系是生命周期：<code>'a: 'b</code> 。比如，<code>'static: 'a</code> ，并且默认都是协变，唯一逆变的地方在 <code>fn(T)</code></p>
+<p><code>'static: 'a</code> 对应： <code>子类型: 父类型</code>。</p>
+<ul>
+<li>协变： 能用 ’a 的地方，也可以用 ’static。</li>
+<li>逆变： 能用 ’static 的地方，可以可以用 ’a。</li>
+</ul>
+<p>规则：</p>
+<p>PhantomData规则：</p>
+<ul>
+<li>PhantomData，在T上是协变。</li>
+<li>PhantomData&lt;&amp;’a T&gt;，在’a 和T上是协变。</li>
+<li>PhantomData&lt;&amp;’a mut T&gt;，在’a上是协变，在T上是不变。</li>
+<li>PhantomData&lt;*const T&gt;，在T上是协变。</li>
+<li>PhantomData&lt;*mut T&gt;，在T上不变。</li>
+<li>PhantomData&lt;fn(T)&gt;，在T上是逆变，如果以后语法修改的话，会成为不变。</li>
+<li>PhantomData&lt;fn() -&gt; T&gt;，在T上是协变。</li>
+<li>PhantomData&lt;fn(T) -&gt; T&gt;，在T上是不变。</li>
+<li>PhantomData&lt;Cell&lt;&amp;’a ()&gt;&gt;，在’a上是不变。</li>
+</ul>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="comment">// 协变类型
+</span><span class="kw">struct </span>MyCell&lt;T&gt; {
+    value: T,
+}
+<span class="kw">impl</span>&lt;T: Copy&gt; MyCell&lt;T&gt; {
+    <span class="kw">fn </span>new(x: T) -&gt; MyCell&lt;T&gt; {
+        MyCell { value: x }
+    }
+    <span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; T {
+        <span class="self">self</span>.value
+}
+<span class="kw">fn </span>set(<span class="kw-2">&amp;</span><span class="self">self</span>, value: T) {
+    <span class="kw">use </span>std::ptr;
+    <span class="kw">unsafe </span>{
+        ptr::write(<span class="kw-2">&amp;</span><span class="self">self</span>.value <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*mut </span><span class="kw">_</span>, value);
+    }
+}
+}
+
+<span class="kw">fn </span>step1&lt;<span class="lifetime">'a</span>&gt;(r_c1: <span class="kw-2">&amp;</span>MyCell&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>i32&gt;) {
+    <span class="kw">let </span>val: i32 = <span class="number">13</span>;
+    step2(<span class="kw-2">&amp;</span>val, r_c1); <span class="comment">// step2函数执行完再回到step1
+    </span><span class="macro">println!</span>(<span class="string">"step1 value: {}"</span>, r_c1.value);
+} <span class="comment">// step1调用完，栈帧将被清理，val将不复存在，&amp;val将成为悬垂指针
+
+</span><span class="kw">fn </span>step2&lt;<span class="lifetime">'b</span>&gt;(r_val: <span class="kw-2">&amp;</span><span class="lifetime">'b </span>i32, r_c2: <span class="kw-2">&amp;</span>MyCell&lt;<span class="kw-2">&amp;</span><span class="lifetime">'b </span>i32&gt;) {
+    r_c2.set(r_val);
+}
+<span class="kw">static </span>X: i32 = <span class="number">10</span>;
+<span class="kw">fn </span>main() {
+<span class="kw">let </span>cell = MyCell::new(<span class="kw-2">&amp;</span>X);
+step1(<span class="kw-2">&amp;</span>cell);
+<span class="macro">println!</span>(<span class="string">"  end value: {}"</span>, cell.value); <span class="comment">//此处 cell.value的值将无法预期，UB风险
+</span>}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A//+%E5%8D%8F%E5%8F%98%E7%B1%BB%E5%9E%8B%0Astruct+MyCell%3CT%3E+%7B%0A++++value:+T,%0A%7D%0Aimpl%3CT:+Copy%3E+MyCell%3CT%3E+%7B%0A++++fn+new(x:+T)+-%3E+MyCell%3CT%3E+%7B%0A++++++++MyCell+%7B+value:+x+%7D%0A++++%7D%0A++++fn+get(%26self)+-%3E+T+%7B%0A++++++++self.value%0A%7D%0Afn+set(%26self,+value:+T)+%7B%0A++++use+std::ptr;%0A++++unsafe+%7B%0A++++++++ptr::write(%26self.value+as+*const+_+as+*mut+_,+value);%0A++++%7D%0A%7D%0A%7D%0A%0Afn+step1%3C'a%3E(r_c1:+%26MyCell%3C%26'a+i32%3E)+%7B%0A++++let+val:+i32+=+13;%0A++++step2(%26val,+r_c1);+//+step2%E5%87%BD%E6%95%B0%E6%89%A7%E8%A1%8C%E5%AE%8C%E5%86%8D%E5%9B%9E%E5%88%B0step1%0A++++println!(%22step1+value:+%7B%7D%22,+r_c1.value);%0A%7D+//+step1%E8%B0%83%E7%94%A8%E5%AE%8C%EF%BC%8C%E6%A0%88%E5%B8%A7%E5%B0%86%E8%A2%AB%E6%B8%85%E7%90%86%EF%BC%8Cval%E5%B0%86%E4%B8%8D%E5%A4%8D%E5%AD%98%E5%9C%A8%EF%BC%8C%26val%E5%B0%86%E6%88%90%E4%B8%BA%E6%82%AC%E5%9E%82%E6%8C%87%E9%92%88%0A%0Afn+step2%3C'b%3E(r_val:+%26'b+i32,+r_c2:+%26MyCell%3C%26'b+i32%3E)+%7B%0A++++r_c2.set(r_val);%0A%7D%0Astatic+X:+i32+=+10;%0Afn+main()+%7B%0Alet+cell+=+MyCell::new(%26X);%0Astep1(%26cell);%0Aprintln!(%22++end+value:+%7B%7D%22,+cell.value);+//%E6%AD%A4%E5%A4%84+cell.value%E7%9A%84%E5%80%BC%E5%B0%86%E6%97%A0%E6%B3%95%E9%A2%84%E6%9C%9F%EF%BC%8CUB%E9%A3%8E%E9%99%A9%0A%7D&amp;edition=2018"></a></div>
+<p>Basic usage: 修改MyCell 类型为不变</p>
+<p>解决上面示例UB的问题，编译将报错，因为安全检查生效了，成功阻止了UB风险</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>std::marker::PhantomData;
+<span class="kw">struct </span>MyCell&lt;T&gt; {
+    value: T,
+    mark: PhantomData&lt;<span class="kw">fn</span>(T)&gt; , <span class="comment">//通过PhantomData&lt;fn(T)&gt;将MyCell&lt;T&gt;改为逆变类型
+</span>}
+<span class="kw">impl</span>&lt;T: Copy&gt; MyCell&lt;T&gt; {
+    <span class="kw">fn </span>new(x: T) -&gt; MyCell&lt;T&gt; {
+        MyCell { value: x , mark: PhantomData}
+    }
+<span class="kw">fn </span>get(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; T {
+    <span class="self">self</span>.value
+}
+<span class="kw">fn </span>set(<span class="kw-2">&amp;</span><span class="self">self</span>, value: T) {
+    <span class="kw">use </span>std::ptr;
+    <span class="kw">unsafe </span>{
+        ptr::write(<span class="kw-2">&amp;</span><span class="self">self</span>.value <span class="kw">as </span><span class="kw-2">*const </span><span class="kw">_ as </span><span class="kw-2">*mut </span><span class="kw">_</span>, value);
+    }
+}
+}
+<span class="kw">fn </span>step1&lt;<span class="lifetime">'a</span>&gt;(r_c1: <span class="kw-2">&amp;</span>MyCell&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>i32&gt;) {
+    <span class="kw">let </span>val: i32 = <span class="number">13</span>;
+    step2(<span class="kw-2">&amp;</span>val, r_c1); <span class="comment">// error[E0597]: `val` does not live long enough
+    </span><span class="macro">println!</span>(<span class="string">"step1 value: {}"</span>, r_c1.value);
+} <span class="comment">// step1调用完，栈帧将被清理，val将不复存在，&amp;val将成为悬垂指针
+
+</span><span class="kw">fn </span>step2&lt;<span class="lifetime">'b</span>&gt;(r_val: <span class="kw-2">&amp;</span><span class="lifetime">'b </span>i32, r_c2: <span class="kw-2">&amp;</span>MyCell&lt;<span class="kw-2">&amp;</span><span class="lifetime">'b </span>i32&gt;) {
+    r_c2.set(r_val);
+}
+<span class="kw">static </span>X: i32 = <span class="number">10</span>;
+<span class="kw">fn </span>main() {
+    <span class="kw">let </span>cell = MyCell::new(<span class="kw-2">&amp;</span>X);
+    step1(<span class="kw-2">&amp;</span>cell);
+    <span class="macro">println!</span>(<span class="string">"  end value: {}"</span>, cell.value);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Ause+std::marker::PhantomData;%0Astruct+MyCell%3CT%3E+%7B%0A++++value:+T,%0A++++mark:+PhantomData%3Cfn(T)%3E+,+//%E9%80%9A%E8%BF%87PhantomData%3Cfn(T)%3E%E5%B0%86MyCell%3CT%3E%E6%94%B9%E4%B8%BA%E9%80%86%E5%8F%98%E7%B1%BB%E5%9E%8B%0A%7D%0Aimpl%3CT:+Copy%3E+MyCell%3CT%3E+%7B%0A++++fn+new(x:+T)+-%3E+MyCell%3CT%3E+%7B%0A++++++++MyCell+%7B+value:+x+,+mark:+PhantomData%7D%0A++++%7D%0Afn+get(%26self)+-%3E+T+%7B%0A++++self.value%0A%7D%0Afn+set(%26self,+value:+T)+%7B%0A++++use+std::ptr;%0A++++unsafe+%7B%0A++++++++ptr::write(%26self.value+as+*const+_+as+*mut+_,+value);%0A++++%7D%0A%7D%0A%7D%0Afn+step1%3C'a%3E(r_c1:+%26MyCell%3C%26'a+i32%3E)+%7B%0A++++let+val:+i32+=+13;%0A++++step2(%26val,+r_c1);+//+error%5BE0597%5D:+%60val%60+does+not+live+long+enough%0A++++println!(%22step1+value:+%7B%7D%22,+r_c1.value);%0A%7D+//+step1%E8%B0%83%E7%94%A8%E5%AE%8C%EF%BC%8C%E6%A0%88%E5%B8%A7%E5%B0%86%E8%A2%AB%E6%B8%85%E7%90%86%EF%BC%8Cval%E5%B0%86%E4%B8%8D%E5%A4%8D%E5%AD%98%E5%9C%A8%EF%BC%8C%26val%E5%B0%86%E6%88%90%E4%B8%BA%E6%82%AC%E5%9E%82%E6%8C%87%E9%92%88%0A%0Afn+step2%3C'b%3E(r_val:+%26'b+i32,+r_c2:+%26MyCell%3C%26'b+i32%3E)+%7B%0A++++r_c2.set(r_val);%0A%7D%0Astatic+X:+i32+=+10;%0Afn+main()+%7B%0A++++let+cell+=+MyCell::new(%26X);%0A++++step1(%26cell);%0A++++println!(%22++end+value:+%7B%7D%22,+cell.value);%0A%7D&amp;edition=2018"></a></div>
+<p>示例：逆变</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![allow(unused)]
+</span><span class="kw">trait </span>A {
+    <span class="kw">fn </span>foo(<span class="kw-2">&amp;</span><span class="self">self</span>, s: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
+}
+<span class="kw">struct </span>B;
+<span class="kw">impl </span>A <span class="kw">for </span>B {
+    <span class="kw">fn </span>foo(<span class="kw-2">&amp;</span><span class="self">self</span>, s: <span class="kw-2">&amp;</span>str){
+        <span class="macro">println!</span>(<span class="string">"{:?}"</span>, s);
+    }
+}
+<span class="kw">impl </span>B{
+<span class="kw">fn </span>foo2(<span class="kw-2">&amp;</span><span class="self">self</span>, s: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str){
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, s);
+}
+}
+<span class="kw">fn </span>main() {
+    B.foo(<span class="string">"hello"</span>);
+    <span class="kw">let </span>s = <span class="string">"hello"</span>.to_string();
+    B.foo2(<span class="kw-2">&amp;</span>s)
+}
+</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Ballow(unused)%5D%0Atrait+A+%7B%0A++++fn+foo(%26self,+s:+%26'static+str);%0A%7D%0Astruct+B;%0Aimpl+A+for+B+%7B%0A++++fn+foo(%26self,+s:+%26str)%7B%0A++++++++println!(%22%7B:?%7D%22,+s);%0A++++%7D%0A%7D%0Aimpl+B%7B%0Afn+foo2(%26self,+s:+%26'static+str)%7B%0A++++println!(%22%7B:?%7D%22,+s);%0A%7D%0A%7D%0Afn+main()+%7B%0A++++B.foo(%22hello%22);%0A++++let+s+=+%22hello%22.to_string();%0A++++B.foo2(%26s)%0A%7D&amp;edition=2018"></a></div>
+<p>示例2:</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">fn </span>foo(input: <span class="kw-2">&amp;</span>str)  {
+    <span class="macro">println!</span>(<span class="string">"{:?}"</span>, input);
+}
+<span class="kw">fn </span>bar(f: <span class="kw">fn</span>(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str), v: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str) {
+    (f)(v);
+}
+<span class="kw">fn </span>main(){
+    <span class="kw">let </span>v : <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"hello"</span>;
+    bar(foo, v);
+}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0Afn+foo(input:+%26str)++%7B%0A++++println!(%22%7B:?%7D%22,+input);%0A%7D%0Afn+bar(f:+fn(%26'static+str),+v:+%26'static+str)+%7B%0A++++(f)(v);%0A%7D%0Afn+main()%7B%0A++++let+v+:+%26'static+str+=+%22hello%22;%0A++++bar(foo,+v);%0A%7D&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>

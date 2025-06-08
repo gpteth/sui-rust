@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="const generic"><title>const_generic_show in inviting_rust::ch01::ctfe - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-6c3ea77c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="inviting_rust" data-themes="" data-resource-suffix="" data-rustdoc-version="1.86.0 (05f9846f8 2025-03-31)" data-channel="1.86.0" data-search-js="search-581efc7a.js" data-settings-js="settings-6dad6058.js" ><script src="../../../static.files/storage-3a5871a4.js"></script><script defer src="sidebar-items.js"></script><script defer src="../../../static.files/main-4d63596a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc fn"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle" title="show sidebar"></button></nav><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../inviting_rust/index.html">inviting_<wbr>rust</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">const_<wbr>generic_<wbr>show</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#const-generic" title="const generic">const generic</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="index.html">In inviting_<wbr>rust::<wbr>ch01::<wbr>ctfe</a></h2></div></div></nav><div class="sidebar-resizer"></div><main><div class="width-limiter"><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">inviting_rust</a>::<wbr><a href="../index.html">ch01</a>::<wbr><a href="index.html">ctfe</a></div><h1>Function <span class="fn">const_generic_show</span><button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/inviting_rust/ch01/ctfe.rs.html#292-294">Source</a> </span></div><pre class="rust item-decl"><code>pub fn const_generic_show()</code></pre><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><h4 id="const-generic"><a class="doc-anchor" href="#const-generic">§</a>const generic</h4>
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#![feature(min_const_generics)]
+#![feature(const_in_array_repeat_expressions)]
+
+</span><span class="kw">use </span>core::mem::MaybeUninit;
+
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub struct </span>ArrayVec&lt;T, <span class="kw">const </span>N: usize&gt; {
+    items: [MaybeUninit&lt;T&gt;; N],
+    length: usize,
+}
+
+<span class="kw">impl</span>&lt;T, <span class="kw">const </span>N: usize&gt; ArrayVec&lt;T,  {N} &gt; {
+    <span class="kw">pub const fn </span>new() -&gt; ArrayVec&lt;T, {N} &gt; {
+        ArrayVec {
+            items: [MaybeUninit::uninit(); N],
+            length: <span class="number">0</span>,
+        }
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub const fn </span>len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize { <span class="self">self</span>.length }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub const fn </span>is_empty(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool { <span class="self">self</span>.len() == <span class="number">0 </span>}
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub const fn </span>capacity(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize { N }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub const fn </span>is_full(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool { <span class="self">self</span>.len() &gt;= <span class="self">self</span>.capacity() }
+
+}
+
+<span class="kw">impl</span>&lt;T, <span class="kw">const </span>N: usize&gt; Drop <span class="kw">for </span>ArrayVec&lt;T, { N }&gt; {
+    <span class="attr">#[inline]
+    </span><span class="kw">fn </span>drop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="comment">// Makes sure the destructors for all items are run.
+        // self.clear();
+    </span>}
+}
+
+
+<span class="kw">fn </span>main(){
+    <span class="comment">// let mut vector = ArrayVec::new();
+    // println!("{}, {}", vector.len(), vector.capacity());
+    // println!("{:?}", vector);
+</span>}</code></pre><a class="test-arrow" target="_blank" title="Run code" href="https://play.rust-lang.org/?code=%23!%5Ballow(unused)%5D%0A%23!%5Bfeature(min_const_generics)%5D%0A%23!%5Bfeature(const_in_array_repeat_expressions)%5D%0A%0Ause+core::mem::MaybeUninit;%0A%0A%23%5Bderive(Debug)%5D%0Apub+struct+ArrayVec%3CT,+const+N:+usize%3E+%7B%0A++++items:+%5BMaybeUninit%3CT%3E;+N%5D,%0A++++length:+usize,%0A%7D%0A%0Aimpl%3CT,+const+N:+usize%3E+ArrayVec%3CT,++%7BN%7D+%3E+%7B%0A++++pub+const+fn+new()+-%3E+ArrayVec%3CT,+%7BN%7D+%3E+%7B%0A++++++++ArrayVec+%7B%0A++++++++++++items:+%5BMaybeUninit::uninit();+N%5D,%0A++++++++++++length:+0,%0A++++++++%7D%0A++++%7D%0A%0A++++%23%5Binline%5D%0A++++pub+const+fn+len(%26self)+-%3E+usize+%7B+self.length+%7D%0A%0A++++%23%5Binline%5D%0A++++pub+const+fn+is_empty(%26self)+-%3E+bool+%7B+self.len()+==+0+%7D%0A%0A++++%23%5Binline%5D%0A++++pub+const+fn+capacity(%26self)+-%3E+usize+%7B+N+%7D%0A%0A++++%23%5Binline%5D%0A++++pub+const+fn+is_full(%26self)+-%3E+bool+%7B+self.len()+%3E=+self.capacity()+%7D%0A%0A%7D%0A%0Aimpl%3CT,+const+N:+usize%3E+Drop+for+ArrayVec%3CT,+%7B+N+%7D%3E+%7B%0A++++%23%5Binline%5D%0A++++fn+drop(%26mut+self)+%7B%0A++++++++//+Makes+sure+the+destructors+for+all+items+are+run.%0A++++++++//+self.clear();%0A++++%7D%0A%7D%0A%0A%0Afn+main()%7B%0A++++//+let+mut+vector+=+ArrayVec::new();%0A++++//+println!(%22%7B%7D,+%7B%7D%22,+vector.len(),+vector.capacity());%0A++++//+println!(%22%7B:?%7D%22,+vector);%0A%7D&amp;version=nightly&amp;edition=2018"></a></div>
+</div></details></section></div></main></body></html>
